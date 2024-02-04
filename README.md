@@ -25,5 +25,7 @@ R-C should create a sub-folder "Videos" where all the triggered videos will be s
 
 Note that the stream should continue while video is being recorded and stored.
 
+Now with buttons and a message feedback area to allow some control from the remote browser
+
 
 
