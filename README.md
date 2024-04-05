@@ -27,7 +27,7 @@ Note that the stream should continue while video is being recorded and stored.
 
 Now with buttons and a message feedback area to allow some control from the remote browser
 
-##Circular Buffer Version
+## Circular Buffer Version
 Added a version that uses the CircularOutput buffer to record video from 5 secs before the trigger motion
 (This version is restricted to recording .h264 files so also added an .mp4 conversion followed by
 a deletion of the .h264 file)
