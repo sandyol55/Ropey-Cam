@@ -8,7 +8,7 @@ It's stitched together from examples with minimal Python skills, and it probably
 Clone or copy / download Ropey-Cam.py to local machine.
 
 The current version is configured to use Mode 5 from a V2 IMX219 camera.
-If you plan to use another camera find the camera_mode_select variable  and change it
+If you plan to use another camera find the cam_mode_select variable  and change it
 e.g. for a V3 camera mode 0 might be a good choice.
 
 Run Ropey-Cam and point a browser at <machine.ip:8000>
