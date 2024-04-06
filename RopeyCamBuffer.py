@@ -6,7 +6,7 @@
 # a local Videos subfolder, along with a jpeg monochrome still of the trigger moment.
 # Adjust TriggerLevel as required to set sensitivity of trigger
 # Based almost entirely on examples from Picamera2 manual and githhub examples stitched together
-# Buttons on home page can Start/Stop streaming or toggle motion triggering.
+# Buttons on home page can :Start/Stop streaming: :Delete Video Files: :RESET: :Spare Button4: :Reboot the system: or :Toggle motion triggering:  
 # Other features ????
 import io
 import os
@@ -34,13 +34,19 @@ Message1="This will be the Feedback Message Area"
 MotionBtn ="Mot_OFF"
 Motoggle=True
 
+#Set Video sizes
 w,h=1024,768 #Set default recorded video dimensions
 w2,h2=w//2,h//2  #Half size lo-res size for motion detect and streaming
 
+#Initialise variables and Booleans
 TriggerLevel=12
 trigger=TriggerLevel  # Sensitivity of frame to frame change for motion detection 
 video_count=0
 wasbuttonpressed = False
+Reboot =False
+DeleteFiles=False
+
+#Pick a Camera Mode 
 cam_mode_select =5 # Pick the most suitable mode for your sensor
 
 # set text colour, position and size for timestamp
@@ -104,38 +110,53 @@ class StreamingOutput(io.BufferedIOBase):
 
 class StreamingHandler(BaseHTTPRequestHandler):
     def do_POST(self):
-        global Message1,Stop_Start,wasbuttonpressed,MotionBtn,TriggerLevel
+        global Message1,Stop_Start,wasbuttonpressed,MotionBtn,TriggerLevel,video_count,Reboot,DeleteFiles
 
         content_length = int(self.headers['Content-Length'])  # Get the size of data
         post_data = self.rfile.read(content_length).decode("utf-8")  # Get the data
         post_data = post_data.split("=")[1]  # Only keep the value
 
         if post_data == 'START':
-            Message1="Start was pressed so next action is Stop"
+            Message1="Start was pressed so Button action becomes Stop"
             Stop_Start="STOP"
             picam2.start_recording(encoder,encoder.output)
+            
         elif post_data == 'STOP':
-            Message1="Stop was pressed so next action is Start"
+            Message1="Stop was pressed so Button action becomes Start"
             Stop_Start="START"
             picam2.stop_recording()
-        elif post_data == 'Button2':
-            Message1="Button 2 was pressed"
-        elif post_data =='Button3':
-            Message1="Button 3 was pressed"  
+            
+        elif post_data == 'DELETE':
+            Message1="Press DELETE again to delete all files - or RESET to cancel"
+            if DeleteFiles:
+                os.system("rm avi*")
+                video_count=0
+                DeleteFiles =False
+                Message1 = "Video files deleted and counter reset"
+            else:
+                DeleteFiles=True
+            
+        elif post_data =='RESET':
+            Message1="Reset DELETE and REBOOT to initial default conditions"
+            Reboot=False
+            DeleteFiles=False
+            
         elif post_data == 'Button4':
             Message1="Button 4 was pressed"
+            
         elif post_data == 'REBOOT':
-            Message1="REBOOT was pressed"
-            time.sleep(2)
-            Message1="Rebooting....."
-            time.sleep(1)
-            os.system("sudo reboot")
+            Message1=" Press REBOOT again if you're sure - or RESET to cancel"
+            if Reboot:
+                os.system("sudo reboot")
+            Reboot = True
+            
         elif post_data == 'Mot_ON':
-            Message1="Motion_ON was pressed so next action is Motion_OFF"
+            Message1="Motion_ON was pressed so Button action becomes Motion_OFF"
             MotionBtn="Mot_OFF"
             TriggerLevel=trigger
+            
         elif post_data == 'Mot_OFF':
-            Message1="Motion_OFF was pressed so next action is Motion_ON"
+            Message1="Motion_OFF was pressed so Button action becomes Motion_ON"
             MotionBtn="Mot_ON"
             TriggerLevel=9999999 
         
@@ -166,8 +187,8 @@ class StreamingHandler(BaseHTTPRequestHandler):
                     <p> {ph1}  </p>
                     <form action="/" method="POST">
                       <input type="submit" name="submit" value="{ph2}">
-                      <input type="submit" name="submit" value="Button2">
-                      <input type="submit" name="submit" value="Button3">
+                      <input type="submit" name="submit" value="DELETE">
+                      <input type="submit" name="submit" value="RESET">
                       <input type="submit" name="submit" value="Button4">
                       <input type="submit" name="submit" value="REBOOT">
                       <input type="submit" name="submit" value="{ph3}">
@@ -271,6 +292,7 @@ def motion():
                         print("Removing h264 version")
                         print("Waiting for next trigger")
                         
+                        
             prev = cur
             wasbuttonpressed = False
 
@@ -291,10 +313,10 @@ picam2.configure(picam2.create_video_configuration(sensor={"output_size":mode['s
                                                      main={"size": (w,h)},
                                                        lores={"size": (w2, h2)},buffer_count=10))
                  
-#picam2.set_controls({'AeExposureMode' : controls.AeExposureModeEnum.Short})
-#output = StreamingOutput()                   
+                
 encoder = H264Encoder(1900000, repeat=True,iperiod=45)
 picam2.pre_callback = apply_timestamp
+
 #Circular Buffer enabled
 circ=CircularOutput()
 encoder.output=[circ]
@@ -324,6 +346,7 @@ stream_thread.start()
 motion_thread = Thread(target=motion, daemon=True)
 motion_thread.start()
 motion_thread.join()
+#unnecessary joins?
 #mjpeg_thread.join()
 #stream_thread.join()
 #cb_thread.join()
