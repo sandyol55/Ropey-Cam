@@ -36,12 +36,19 @@ Added a version that uses the CircularOutput buffer to record video from 5 secs 
 (This version is restricted to recording .h264 files so also added an .mp4 conversion followed by
 a deletion of the .h264 file)
 ### Update1
-The browser control buttons have been updated to be more useful.(Only in the Buffer version so far, will be replicated in original version soon)
+The browser control buttons have been updated to be more useful.
+(Only in the Buffer version so far, will be replicated in original version soon)
+
 STOP halts the streaming and video recording and is replaced by START when pressed
+
 DELETE will delete all the recorded video files - needs a second press to confirm
+
 RESET will undo the first press of either the DELETE or REBOOT buttons
+
 Button4 is still a spare
+
 REBOOT wil reboot the Pi and also needs a second press - most useful if the program is set to autorun on boot!
+
 Mot_OFF will disable the motion Triggering, and is replaced by Mot_ON when pressed
 
 
