@@ -1,12 +1,13 @@
 #!/usr/bin/python3
+#Rev01 Control button functionality updated as per initial Circular Buffer version
 
 # Run this script, then point a web browser at http:<this-ip-address>:8000
 # or to test on the local machine use 127.0.0.1:8000
 # While running, any motion above 'TriggerLevel'will start a timestamped video capture to 
-# a local Videos subfolder, along with a jpeg monochrome still of the trigger moment.
+# a local Videos subfolder, along with an optional jpeg monochrome still of the trigger moment.
 # Adjust TriggerLevel as required to set sensitivity of trigger
 # Based almost entirely on examples from Picamera2 manual and githhub examples stitched together
-# Buttons on home page can Start/Stop streaming or toggle motion triggering.
+# Buttons on home page can :Start/Stop streaming: :Delete Video Files: :RESET: :Spare Button4: :Reboot the system: or :Toggle motion triggering:
 # Other features ????
 import io
 import os
@@ -28,23 +29,28 @@ from PIL import Image
 from libcamera import Transform
 from libcamera import controls
 
-# Set HTML 'variables'
-Stop_Start ="STOP"
+# Set initial value of HTML 'variables'
 Message1="This will be the Feedback Message Area"
+Stop_Start="STOP"
 MotionBtn ="Mot_OFF"
-Motoggle=True
 
 w,h=1024,768 #Set default recorded video dimensions
 w2,h2=w//2,h//2  #Half size lo-res size for motion detect and streaming
 
-TriggerLevel=12
+#Initialise variables and Booleans
+TriggerLevel=15
 trigger=TriggerLevel  # Sensitivity of frame to frame change for motion detection 
 video_count=0
-wasbuttonpressed = False
+Motoggle=True
+wasbuttonpressed=False
+Reboot = False
+DeleteFiles = False
+
+#Pick a Camera Mode 
 cam_mode_select =5 # Pick the most suitable mode for your sensor
 
 # set text colour, position and size for timestamp
-colour = (220, 220, 80)
+colour = (240, 240, 30)
 origin = (180, 50)
 font = cv2.FONT_HERSHEY_SIMPLEX
 scale = 2
@@ -104,7 +110,7 @@ class StreamingOutput(io.BufferedIOBase):
 
 class StreamingHandler(BaseHTTPRequestHandler):
     def do_POST(self):
-        global Message1,Stop_Start,wasbuttonpressed,MotionBtn,TriggerLevel
+        global Message1,Stop_Start,wasbuttonpressed,MotionBtn,TriggerLevel,video_count,Reboot,DeleteFiles
 
         content_length = int(self.headers['Content-Length'])  # Get the size of data
         post_data = self.rfile.read(content_length).decode("utf-8")  # Get the data
@@ -113,27 +119,42 @@ class StreamingHandler(BaseHTTPRequestHandler):
         if post_data == 'START':
             Message1="Start was pressed so next action is Stop"
             Stop_Start="STOP"
-            picam2.start_recording(MJPEGEncoder(), FileOutput(output))
+            picam2.start_recording(H264Encoder(), encoder.output)
+            
         elif post_data == 'STOP':
             Message1="Stop was pressed so next action is Start"
             Stop_Start="START"
             picam2.stop_recording()
-        elif post_data == 'Button2':
-            Message1="Button 2 was pressed"
-        elif post_data =='Button3':
-            Message1="Button 3 was pressed"  
+
+        elif post_data == 'DELETE':
+            Message1="Press DELETE again to delete all files - or RESET to cancel"
+            if DeleteFiles:
+                os.system("rm avi*")
+                video_count=0
+                DeleteFiles =False
+                Message1 = "Video files deleted and counter reset"
+            else:
+                DeleteFiles=True
+                
+        elif post_data =='RESET':
+            Message1="Reset DELETE and REBOOT to initial default conditions"
+            Reboot=False
+            DeleteFiles=False
+            
         elif post_data == 'Button4':
             Message1="Button 4 was pressed"
+            
         elif post_data == 'REBOOT':
-            Message1="REBOOT was pressed"
-            time.sleep(2)
-            Message1="Rebooting....."
-            time.sleep(1)
-            os.system("sudo reboot")
+            Message1=" Press REBOOT again if you're sure - or RESET to cancel"
+            if Reboot:
+                os.system("sudo reboot")
+            Reboot = True
+            
         elif post_data == 'Mot_ON':
             Message1="Motion_ON was pressed so next action is Motion_OFF"
             MotionBtn="Mot_OFF"
             TriggerLevel=trigger
+            
         elif post_data == 'Mot_OFF':
             Message1="Motion_OFF was pressed so next action is Motion_ON"
             MotionBtn="Mot_ON"
@@ -166,8 +187,8 @@ class StreamingHandler(BaseHTTPRequestHandler):
                     <p> {ph1}  </p>
                     <form action="/" method="POST">
                       <input type="submit" name="submit" value="{ph2}">
-                      <input type="submit" name="submit" value="Button2">
-                      <input type="submit" name="submit" value="Button3">
+                      <input type="submit" name="submit" value="DELETE">
+                      <input type="submit" name="submit" value="RESET">
                       <input type="submit" name="submit" value="Button4">
                       <input type="submit" name="submit" value="REBOOT">
                       <input type="submit" name="submit" value="{ph3}">
@@ -236,6 +257,7 @@ def motion():
             cur = cur[:h2,:]
             if prev is not None:
                 mse = np.mean(np.square(np.subtract(cur, prev)))
+                #uncomment next line to get a running printout of background video change level
                 #print(mse) 
                 if mse >TriggerLevel: #Adjust TriggerLevel for motion sensivity and /or noise level in image
                     if not encoding:
@@ -243,9 +265,10 @@ def motion():
                         now = datetime.now()
                         date_time = now.strftime("%Y%m%d_%H%M%S")
                         file_title="avi_{:05d}_{}".format(video_count,date_time)
-                        # Store a monochrome image of trigger point. 
-                        icon=Image.fromarray(cur)
-                        icon.save(file_title+"_im.jpg")
+                        # Store a monochrome image of trigger point.
+                        #Comment out next two lines if not required
+                        #icon=Image.fromarray(cur)
+                        #icon.save(file_title+"_im.jpg")
                         
                         encoder.output= FfmpegOutput(file_title+".mp4")
                         picam2.start_encoder(encoder)
@@ -284,15 +307,14 @@ picam2.configure(picam2.create_video_configuration(sensor={"output_size":mode['s
                                                      main={"size": (w,h)},
                                                        lores={"size": (w2, h2)},buffer_count=10))
                  
-picam2.set_controls({'AeExposureMode' : controls.AeExposureModeEnum.Short})
-output = StreamingOutput()                   
-encoder = H264Encoder(3000000, repeat=True,iperiod=45)
+                  
+encoder = H264Encoder(1900000, repeat=True,iperiod=45)
+
 picam2.pre_callback = apply_timestamp
 
 picam2.start()
-time.sleep(1)
 
-
+#Start the various threads 
 cb_abort = False
 cb_frame = None
 buf2 = None
@@ -312,6 +334,9 @@ stream_thread.start()
 motion_thread = Thread(target=motion, daemon=True)
 motion_thread.start()
 motion_thread.join()
+#Join motion thread to ensure recordings are given priority and complete uninterrupted -?? Maybe??
+
+#Unnecessary joins?
 #mjpeg_thread.join()
 #stream_thread.join()
 #cb_thread.join()
