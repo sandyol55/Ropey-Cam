@@ -6,9 +6,10 @@ It's stitched together from examples with minimal Python skills, and it probably
 
 ## Usage
 Clone or copy / download Ropey-Cam.py to local machine.
+Ensure you have opencv installed as per instructions in the PiCamera2 manual
 
 The current version is configured to use Mode 5 from a V2 IMX219 camera.
-If you plan to use another camera find the cam_mode_select variable  and change it
+If you plan to use another camera find the cam_mode_select variable (line 50) and change it
 e.g. for a V3 camera mode 0 might be a good choice.
 
 Run Ropey-Cam and point a browser at <machine.ip:8000>
@@ -35,9 +36,8 @@ Now with buttons and a message feedback area to allow some control from the remo
 Added a version that uses the CircularOutput buffer to record video from 5 secs before the trigger motion
 (This version is restricted to recording .h264 files so also added an .mp4 conversion followed by
 a deletion of the .h264 file)
-### Update1
+### Update 2
 The browser control buttons have been updated to be more useful.
-(Only in the Buffer version so far, will be replicated in original version soon)
 
 STOP halts the streaming and video recording and is replaced by START when pressed
 
