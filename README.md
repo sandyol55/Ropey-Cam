@@ -1,5 +1,11 @@
 # Ropey-Cam
-Basic simultaneous , local stream to browser, and motion triggered recording for RPi. Based on stitching together examples from the Picamera2 repository.
+Basic simultaneous, local stream to browser, and motion triggered recording for RPi.  
+Based on stitching together examples from the Picamera2 repository.  
+https://github.com/raspberrypi/picamera2/tree/main/examples.  
+Button controls in browser inspired by:-  
+https://www.e-tinkers.com/2018/04/how-to-control-raspberry-pi-gpio-via-http-web-server/  
+Thanks to signag for coding suggestions  
+https://github.com/signag/raspi-cam-srv
 
 Why Ropey-Cam?
 It's stitched together from examples with minimal Python skills, and it probably has more threads than necessary!
@@ -8,8 +14,10 @@ It's stitched together from examples with minimal Python skills, and it probably
 Clone or copy / download Ropey-Cam.py to local machine.
 Ensure you have opencv installed as per instructions in the PiCamera2 manual
 
-The current version is configured to use Mode 5 from a V2 IMX219 camera.
-If you plan to use another camera find the cam_mode_select variable (line 50) and change it
+
+The current versions are configured to use a V2 IMX219 camera in Mode 5.  
+If you plan to use a different camera find the cam_mode_select variable (line 50) and change it
+to an appropriate mode.  
 e.g. for a V3 camera mode 0 might be a good choice.
 
 Run Ropey-Cam and point a browser at <machine.ip:8000>
