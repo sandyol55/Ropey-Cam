@@ -21,7 +21,7 @@ to an appropriate mode for your camera. Normally best to pick a mode with a high
 may also want to choose a full uncropped sensor mode. The choice is yours.
 e.g. for a V3 camera mode 0 or perhaps 1 might be a good choice.
 
-Run Ropey-Cam and point a browser at <machine.ip:8000>
+Run Ropey-Cam and point a browser at <mac.hin.e.ip:8000>
 (Or for a local check, on the same machine point a browser 
 at 127.0.0.0:8000)  Or even both.
 
