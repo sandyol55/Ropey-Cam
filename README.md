@@ -17,7 +17,7 @@ https://datasheets.raspberrypi.com/camera/picamera2-manual.pdf
 
 The current versions are configured to use a V2 IMX219 camera so are set up to use its Mode 5.  
 If you plan to use a different camera find the cam_mode_select variable (line 50) and change it
-to an appropriate mode for your camera. Normally best to pick a mode with a high frame rate,but
+to an appropriate mode for your camera. Normally best to pick a mode with a high frame rate, but
 may also want to choose a full uncropped sensor mode. The choice is yours.
 e.g. for a V3 camera mode 0 or perhaps 1 might be a good choice.
 
