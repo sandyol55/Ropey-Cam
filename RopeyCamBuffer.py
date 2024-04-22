@@ -8,7 +8,7 @@
 # Based almost entirely on examples from Picamera2 manual and githhub examples stitched together
 # Buttons on home page can :Start/Stop streaming: :Delete Video Files: :RESET: :Spare Button4: :Reboot the system: or :Toggle motion triggering:  
 # Other features ????
-import io
+
 import os
 import logging
 import socketserver
@@ -97,17 +97,6 @@ def mjpeg_encode():
                 mjpeg_frame = buf
                 mjpeg_condition.notify_all()
                 
-class StreamingOutput(io.BufferedIOBase):
-    def __init__(self):
-        self.frame = None
-        self.condition = Condition()
-
-    def write(self, buf):
-        with self.condition:
-            self.frame = buf
-            self.condition.notify_all()
-
-
 class StreamingHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         global Message1,Stop_Start,wasbuttonpressed,MotionBtn,TriggerLevel,video_count,Reboot,DeleteFiles
