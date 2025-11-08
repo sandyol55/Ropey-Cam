@@ -21,11 +21,13 @@ to an appropriate mode for your camera. Normally best to pick a mode with a high
 may also want to choose a full uncropped sensor mode. The choice is yours.
 e.g. for a V3 camera mode 0 or perhaps 1 might be a good choice.
 
-Run Ropey-Cam and point a browser at <mac.hin.e.ip:8000>
-(Or for a local check, on the same machine point a browser 
-at 127.0.0.0:8000)  Or even both.
-
+Run Ropey-Cam and from another computer point a browser at <mac.hin.e.ip:8000>
+where mac.hin.e.ip is the IP address of the computer running Ropey-Cam.py
 You should get a live stream from the camera.
+
+(Or for a local check, on the computer running Ropey-Cam.py point a browser 
+at 127.0.0.0:8000)
+Or even do both, to get a stream on the local and the remote computers.
 
 In the background R-C is monitoring for motion in the video stream.
 
@@ -35,16 +37,16 @@ motion has dropped below the set (mse) TriggerLevel.
 
 (Adjust TriggerLevel in the code to change the sensitivity of the trigger level)
 
-R-C should create a sub-folder "Videos" where all the triggered videos will be stored.
+When first run Ropey-Cam should create a sub-folder "Videos" where all the triggered videos will be stored.
 
 Note that the stream should continue while video is being recorded and stored.
 
-Now with buttons and a message feedback area to allow some control from the remote browser
+The web page has some example buttons and a message feedback area to allow some control from the remote browser
 
 ## Circular Buffer Version
+### Update 3
 Added a version that uses the CircularOutput buffer to record video from 5 secs before the trigger motion
-(This version is restricted to recording .h264 files so also added an .mp4 conversion followed by
-a deletion of the .h264 file)
+This has been updated to use the relatively new PyavOutput and CicularOutput2 methods to allow direct recording of mp4 files. 
 ### Update 2
 The browser control buttons have been updated to be more useful.
 
