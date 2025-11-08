@@ -8,6 +8,8 @@
 # Based almost entirely on examples from Picamera2 manual and githhub examples stitched together
 # Buttons on home page can :Start/Stop streaming: :Delete Video Files: :RESET: :Spare Button4: :Reboot the system: or :Toggle motion triggering:  
 # Other features ????
+# Updated to trial the use of CircularOutput and PyavOutput, allowing direct to mp4 recording.
+# Set up to record 5 seconds worth of video prior to the trigger event and 5 seconds after motion drops below the trigger level.
 
 import os
 import logging
@@ -19,10 +21,8 @@ import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from threading import Condition, Thread
 from picamera2 import Picamera2, MappedArray
-from picamera2.encoders import MJPEGEncoder
-from picamera2.encoders import H264Encoder
-from picamera2.outputs import FfmpegOutput
-from picamera2.outputs import FileOutput,CircularOutput
+from picamera2.encoders import MJPEGEncoder, H264Encoder
+from picamera2.outputs import PyavOutput,CircularOutput2
 from datetime import datetime
 from PIL import Image
 from libcamera import Transform
@@ -46,10 +46,10 @@ wasbuttonpressed = False
 Reboot =False
 DeleteFiles=False
 
-#Pick a Camera Mode 
+#Pick a Camera Mode. The Value of  5 here is set for a full-format, binned, 8-bit output from a V2 IMX219 camera. 
 cam_mode_select =5 # Pick the most suitable mode for your sensor
 
-# set text colour, position and size for timestamp
+# set text colour, position and size for timestamp, (Yellow text, near top of screen, in a large font)
 colour = (220, 220, 80)
 origin = (180, 50)
 font = cv2.FONT_HERSHEY_SIMPLEX
@@ -246,39 +246,33 @@ def motion():
             cur = cur[:h2,:]
             if prev is not None:
                 mse = np.mean(np.square(np.subtract(cur, prev)))
-                #print(mse) 
+                
                 if mse >TriggerLevel: #Adjust TriggerLevel for motion sensivity and /or noise level in image
                     if not encoding:
                         video_count+=1
                         now = datetime.now()
                         date_time = now.strftime("%Y%m%d_%H%M%S")
                         file_title="avi_{:05d}_{}".format(video_count,date_time)
-                        fullfile_title=file_title + ".h264"
-                        # Don't store a monochrome image of trigger point. 
-                        #icon=Image.fromarray(cur)
-                        #icon.save(file_title+"_im.jpg")
+                        fullfile_title=file_title + ".mp4"
+                        # Can store a monochrome image of trigger point by uncommenting next two lines 
+                        # icon=Image.fromarray(cur)
+                        # icon.save(file_title+"_im.jpg")
                         
-                        circ.fileoutput= fullfile_title
-                        circ.start()
+                        circ.open_output(PyavOutput(fullfile_title))
                         encoding = True
+                        
                         start_time = time.time()
                         print()
                         print(f'New motion detected with a "change value" of  {mse:.0f}')
                         
                     ltime = time.time()
                 else:
-                    if (encoding and time.time() - ltime > 5.0) :
-                        circ.stop()
+                    if (encoding and ((time.time() - ltime) > 10.0)) : # Wait for 5 seconds after motion stops before closing + 5 seconds for the buffer length.
+                        circ.close_output()
                         encoding = False
                         print("Saving file",file_title)
                         print(f'which holds { (time.time()-start_time):.0f}  seconds worth of video')
                         print()
-                        print("Preparing an mp4 version")
-                        cmd = 'ffmpeg -nostats -loglevel 0 -r 30 -i ' + fullfile_title + ' -c copy ' + file_title +'.mp4'
-                        os.system(cmd)
-                        cmd ='rm ' + fullfile_title 
-                        os.system(cmd)
-                        print("Removing h264 version")
                         print("Waiting for next trigger")
                         
                         
@@ -294,6 +288,7 @@ def stream():
         mjpeg_abort = True
         mjpeg_thread.join()
 
+# Configure Camera and start it running
 picam2 = Picamera2()
 mode=picam2.sensor_modes[cam_mode_select]
 picam2.configure(picam2.create_video_configuration(sensor={"output_size":mode['size'],'bit_depth':mode['bit_depth']},
@@ -306,16 +301,13 @@ picam2.configure(picam2.create_video_configuration(sensor={"output_size":mode['s
 encoder = H264Encoder(1900000, repeat=True,iperiod=45)
 picam2.pre_callback = apply_timestamp
 
-#Circular Buffer enabled
-circ=CircularOutput()
+#Circular Buffer enabled and started
+circ=CircularOutput2(buffer_duration_ms=5000)
 encoder.output=[circ]
-picam2.encoders = encoder
-
-picam2.start()
-picam2.start_encoder()
+picam2.start_recording(encoder,circ)
 time.sleep(1)
 
-
+# Start up the various threads.
 cb_abort = False
 cb_frame = None
 buf2 = None
@@ -335,7 +327,7 @@ stream_thread.start()
 motion_thread = Thread(target=motion, daemon=True)
 motion_thread.start()
 motion_thread.join()
-#unnecessary joins?
-#mjpeg_thread.join()
-#stream_thread.join()
-#cb_thread.join()
+# unnecessary joins?
+# mjpeg_thread.join()
+# stream_thread.join()
+# cb_thread.join()
