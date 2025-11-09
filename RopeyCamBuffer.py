@@ -8,7 +8,7 @@
 # Based almost entirely on examples from Picamera2 manual and githhub examples stitched together
 # Buttons on home page can :Start/Stop streaming: :Delete Video Files: :RESET: :Spare Button4: :Reboot the system: or :Toggle motion triggering:  
 # Other features ????
-# Updated to trial the use of CircularOutput and PyavOutput, allowing direct to mp4 recording.
+# Updated to trial the use of CircularOutput2 and PyavOutput, allowing direct to mp4 recording.
 # Set up to record 5 seconds worth of video prior to the trigger event and 5 seconds after motion drops below the trigger level.
 
 import os
