@@ -8,31 +8,34 @@ Thanks to signag for coding suggestions
 https://github.com/signag/raspi-cam-srv
 
 Not a finished/polished item but suitable as a basis for basic remote operation of an RPi Camera.
+Typical uses would be domestic or wildlife surveillance, with a low resolution live view via a browser,
+and the facility to capture high resolution recordings for later replay and analysis.
 
 Why Ropey-Cam?
-It's stitched together from examples with minimal Python skills, and with numerous threads.
+It's stitched together from examples and code snippets, with minimal Python skills, and with numerous threads.
 
 ## Usage
-Clone or copy / download Ropey-Cam.py to a machine with an attached camera.
+On a machine with desktop RPIOS installed (full not lite)
+Clone or copy / download Ropey-Cam.py (RopeyCamBuffer.py) to a machine with an attached camera.
 Ensure you have opencv installed as per instructions in the PiCamera2 manual
 https://datasheets.raspberrypi.com/camera/picamera2-manual.pdf
 essentially 
 
 sudo apt install python3-opencv -y
 
-The current versions, (Ropey-Cam and RopeyCamBuffer) are 'hard' configured to use a Mode 5 of a V2 IMX219 camera.  
-If you plan to use a different camera find the cam_mode_select variable (line 50) and change it
-to an appropriate mode for your camera. Normally best to pick a mode with a high frame rate, but
+The current versions, (Ropey-Cam and RopeyCamBuffer) are 'hard' configured to use camera Mode 1,
+which gives a full-frame 2x2 binned 10 bit on both V" and V3 camera modules.  
+If you plan to use a different camera, find the cam_mode_select variable (line 50 in Ropey-Cam.py)
+(line 80 in RopeyCamBuffer.py)) and change it to an appropriate mode for your camera.
+Normally best to pick a mode with a high frame rate, but
 may also want to choose a full uncropped sensor mode. The choice is yours.
 
-e.g. for a V3 camera mode 0 or perhaps 1 might be a good choice.
+The image sizes of 1024x768 for video and 1/2 size 512x384 for streaming are also hard configured,
+but suggested alternative values for other sensor or modes are in the comments.
 
-The image sizes of 1024x768 for video and 1/2 size 512x384 are also hard configured and many of the timestamp and other parameters are
-selected to suit these image sizes, so not too readily changed.
+Once loaded and after any changes have been made to the code then:-
 
-Once loaded and after any chnages have been made to the code then:-
-
-Run Ropey-Cam and from another computer point a browser at <mac.hin.e.ip:8000>
+Run Ropey-Cam.py (RopeyCamBuffer.py) and from another computer point a browser at <mac.hin.e.ip:8000>
 where mac.hin.e.ip is the IP address of the computer running Ropey-Cam.py
 You should get a live stream from the camera.
 
@@ -46,33 +49,37 @@ If sufficent change from one video frame to the next has occurred
 it will start a video recording. The recording will stop when the 
 motion has dropped below the set (mse) TriggerLevel.
 
-(Adjust TriggerLevel in the code to change the sensitivity of the trigger level)
+If the frame to frame noise is so large that the system is permanently triggered then 
+use the new Inc_Trigger_Level button to increase the trigger level value and descrease the sensitivity. 
+(Adjust TriggerLevel in the code to change the initial sensitivity of the trigger level)
 
-When first run Ropey-Cam should create a sub-folder "Videos" where all the triggered videos will be stored.
+When first run Ropey-Cam should create a sub-folder "Videos" where all the triggered videos
+and associated monochrome jpeg snapshotsof the moment of triggering will be stored.
 
 Note that the stream should continue while video is being recorded and stored.
 
 The web page has some example buttons and a message feedback area to allow some control from the remote browser
 
 ## Circular Buffer Version
-### Update 2
-The browser control buttons have been updated to be more useful.
 
-STOP halts the streaming and video recording and is replaced by START when pressed
-
-DELETE will delete all the recorded video files - needs a second press to confirm
-
-RESET will undo the first press of either the DELETE or REBOOT buttons
-
-Button4 is still a spare
-
-REBOOT wil reboot the Pi and also needs a second press - most useful if the program is set to autorun on boot!
-
-Mot_OFF will disable the motion Triggering, and is replaced by Mot_ON when pressed
-
-### Update 3
-Added a version that uses the CircularOutput buffer to record video from 5 secs before the trigger motion
-This has been updated to use the relatively new PyavOutput and CicularOutput2 methods to allow direct recording of mp4 files.
+###Update 5
+New Features
+If the disk usage is above a certain level (80%) then, after each saved event, the oldest file pair in the Videos is deleted. 
+The trigger Level for the motion detection is now adjustable via web browser buttons.
+If on start-up the system is recording, perhaps due to noise difference between frames, then Increment the Trigger level.
+Also new is an in-stream stamp in the top left corner showing the current frame to frame mse result versus the current Trigger Level.
+Changes
+Many variable names have been updated to reflect 'best practice' so the code should be more readable.
+A number of previously hard coded settings have been made parametric to adjust in line with the selected video frame dimensions.
+To aid in file review and video replay the system has been tested with a samba server running in the background and been found to be
+responsive, even on older platforms e.g Pi2.
+Install and activate a samba server in line with available online tutorials and access the Videos directory from a remote machine.
+On Pi platforms installing the Thunar file manager is a convenient way to get thumbnail icons of both the video and snapshot files.
+Installing mpv media player and making that the default video player, in place of VLC, allows easy access to some of the video metedata (press I).
+Also tested is invoking a systemd set-up for automatic restart of the programe on system reboot. Again following online tutorials.
+Can add the detailed instructions for both of these if likely to help new users.
+Both of the above (samba and systemd auto start on reboot) have been tested successfully with Pi2 as the camera server.
+If a Pi4 or Pi5 is used then considerably higher resolutions and framerates than the defaults in the current code can be supported.
 
 ### Update 4
 Further updates to improve the button functionality and logic.
@@ -95,3 +102,22 @@ A REC timestamp has been added to the streamed frames to help identify when reco
 
 The conversion of the YUV420 lo-res image arrays to JPEGs for streaming has been updated to be done within simplejpeg, rather
 than a combined OpenCV and simplejpeg operation.
+### Update 3
+Added a version that uses the CircularOutput buffer to record video from 5 secs before the trigger motion
+This has been updated to use the relatively new PyavOutput and CicularOutput2 methods to allow direct recording of mp4 files.
+### Update 2
+The browser control buttons have been updated to be more useful.
+
+STOP halts the streaming and video recording and is replaced by START when pressed
+
+DELETE will delete all the recorded video files - needs a second press to confirm
+
+RESET will undo the first press of either the DELETE or REBOOT buttons
+
+Button4 is still a spare
+
+REBOOT wil reboot the Pi and also needs a second press - most useful if the program is set to autorun on boot!
+
+Mot_OFF will disable the motion Triggering, and is replaced by Mot_ON when pressed
+
+

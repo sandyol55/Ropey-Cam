@@ -29,7 +29,7 @@ stop_start ="Manual_Recording_START"
 message_1="Live streaming with Motion Detection ACTIVE"
 motion_button ="Motion_Detect_OFF"
 
-# Set Video sizes. Firstly width and height of the hi-res (recorded video stream) then the lo-res stream (used for motion detection and streaming)
+# Set Video sizes. Firstly width and height of the hi-res (recorded video stream), then the lo-res stream (used for motion detection and streaming)
 # Uncomment as necessary to set up the required aspect ratio and resolution.
 
 # The sets suggested have been selected to cover most combinations of Pi models and Cameras
@@ -63,7 +63,7 @@ should_delete_files=False
 is_manual_recording=False
 is_recording=False
 
-# Set text colour, position and size for timestamp, (Yellow text, near top of screen, in a large font)
+# Set text colour, position and size for timestamp to embed in recorded video stream, (Yellow text, near top of screen, in a large font)
 colour = (220, 220, 80)
 origin = (40, 50)
 font = FONT_HERSHEY_SIMPLEX
@@ -72,12 +72,11 @@ thickness = 2
 
 # Set Y and u,v colour for a red block REC stamp in streaming frames
 y,u,v = 0,110,250
-# Set Y for combined MSE / Trigger level stamp in streaming frames. White stamp so ne need for u,v values.
+# Set Y for combined MSE / Trigger level stamp in streaming frames. White stamp so no need for u,v values.
 y_mse_stamp = 255
 
-# Pick a Camera Mode. The Value of 1 here would for example: Select a full frame 2x2 binned 10-bit output if using a V2 or V3IMX219 camera.
-# or install samba on raspberry pi
-
+# Pick a Camera Mode. The Value of 1 here would for example:- Select a full frame 2x2 binned 10-bit output if using a V2 or V3 camera.
+# Mode 0 will, in most cameras,select a cropped, fast framerate mode. Use 'rpicam-hello --list-cameras' to get supported modes. 
 cam_mode_select = 1 # Pick a mode for your sensor that will generate the required native format, field of view and framerate.
 
 # Find the directory we're in and then check for, and if necessary, create a Videos subdirectory.
@@ -156,8 +155,8 @@ class StreamingHandler(BaseHTTPRequestHandler):
             if should_delete_files:
                 os.system("rm Videos/avi*")
                 video_count=0
-                should_delete_files = False
                 message_1 = "Video files deleted and counter reset"
+                should_delete_files = False
             else:
                 should_delete_files=True
             
