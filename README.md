@@ -24,7 +24,7 @@ essentially
 sudo apt install python3-opencv -y
 
 The current versions, (Ropey-Cam and RopeyCamBuffer) are 'hard' configured to use camera Mode 1,
-which gives a full-frame 2x2 binned 10 bit on both V" and V3 camera modules.  
+which gives a full-frame 2x2 binned 10 bit on both V2 and V3 camera modules.  
 If you plan to use a different camera, find the cam_mode_select variable (line 50 in Ropey-Cam.py)
 (line 80 in RopeyCamBuffer.py)) and change it to an appropriate mode for your camera.
 Normally best to pick a mode with a high frame rate, but
@@ -50,35 +50,48 @@ it will start a video recording. The recording will stop when the
 motion has dropped below the set (mse) TriggerLevel.
 
 If the frame to frame noise is so large that the system is permanently triggered then 
-use the new Inc_Trigger_Level button to increase the trigger level value and descrease the sensitivity. 
-(Adjust TriggerLevel in the code to change the initial sensitivity of the trigger level)
+use the new Inc_Trigger_Level button to increase the trigger level value and decrease the sensitivity. 
+(Adjust TriggerLevel in the code to change the initial sensitivity of the trigger level).
 
 When first run Ropey-Cam should create a sub-folder "Videos" where all the triggered videos
-and associated monochrome jpeg snapshotsof the moment of triggering will be stored.
+and associated monochrome jpeg snapshots of the moment of triggering will be stored.
 
 Note that the stream should continue while video is being recorded and stored.
 
-The web page has some example buttons and a message feedback area to allow some control from the remote browser
+The web page has buttons and a message feedback area to allow some control from the remote browser.
 
 ## Circular Buffer Version
 
 ###Update 5
 New Features
-If the disk usage is above a certain level (80%) then, after each saved event, the oldest file pair in the Videos is deleted. 
+
+If the disk usage is above a certain level (80%) then, after each saved event, the oldest file pair in the Videos directory is deleted.
+ 
 The trigger Level for the motion detection is now adjustable via web browser buttons.
+
 If on start-up the system is recording, perhaps due to noise difference between frames, then Increment the Trigger level.
+
 Also new is an in-stream stamp in the top left corner showing the current frame to frame mse result versus the current Trigger Level.
+
 Changes
-Many variable names have been updated to reflect 'best practice' so the code should be more readable.
+
+Many variable names have been updated to reflect 'best practice' so the code should be more readable. 
 A number of previously hard coded settings have been made parametric to adjust in line with the selected video frame dimensions.
+ 
 To aid in file review and video replay the system has been tested with a samba server running in the background and been found to be
 responsive, even on older platforms e.g Pi2.
+
 Install and activate a samba server in line with available online tutorials and access the Videos directory from a remote machine.
-On Pi platforms installing the Thunar file manager is a convenient way to get thumbnail icons of both the video and snapshot files.
+On Pi platforms installing the Thunar file manager in the client machine is a convenient way to get thumbnail icons of both the video and snapshot files.
+ 
 Installing mpv media player and making that the default video player, in place of VLC, allows easy access to some of the video metedata (press I).
-Also tested is invoking a systemd set-up for automatic restart of the programe on system reboot. Again following online tutorials.
+
+Also tested is invoking a systemd set-up for automatic restart of the program on system reboot. Again following online tutorials.
+
 Can add the detailed instructions for both of these if likely to help new users.
+
 Both of the above (samba and systemd auto start on reboot) have been tested successfully with Pi2 as the camera server.
+
 If a Pi4 or Pi5 is used then considerably higher resolutions and framerates than the defaults in the current code can be supported.
 
 ### Update 4
