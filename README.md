@@ -98,21 +98,37 @@ If a Pi4 or Pi5 is used then considerably higher resolutions and framerates than
 
 ## Lite installation
 The main instructions assume RopeyCam is to be run with the full desktop OS installed, as this requires the least additional dependencies to be installed.
+
 A Lite installation  will leave more free memory and only requires an extra few steps to set up.
+
 At time of writing Trixie is the latest RPIOS.
+
 Flash a new Lite 64-bit RPIOS image to a card, with SSH configured.
+
 Place the card in the machine with camera installed and power on.
+
 If doing a headless install WAIT until the full image installation and power up sequence is complete.
+
 SSH in and do an initial
-sudo apt update
-sudo apt full-upgrade 
-If planning to clone from the github:-
-sudo apt install git
-Sudo apt install python3-picamera2 --no-install-recommends
+
+sudo apt update 
+
+sudo apt full-upgrade
+
+sudo apt install python3-picamera2 --no-install-recommends
+
 sudo apt install python3-opencv
-Then install RopeyCam either by git cloning or scp from another machine than has a copy.
+
+If planning to clone from the github:-
+
+sudo apt install git
+
+Then install RopeyCam either by git cloning or scp from another machine that has a copy.
+
 Then cd into the directory containing RopeyCam
+
 And ./RopeyCamBuffer.py
+
 
 
 ### Update 4
