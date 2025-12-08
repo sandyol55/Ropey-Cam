@@ -63,6 +63,18 @@ The web page has buttons and a message feedback area to allow some control from 
 
 ## Circular Buffer Version
 
+### Update 6
+New SHUTDOWN button and facility added to completely shutdown the remote machine, in addition to the existing
+REBOOT and EXIT buttons.  
+
+Changes
+
+Buttons re-arranged and DELETE_ALL_FILES highlighted in red.
+
+Improved the exit and shutdown/reboot features to close files more gracefully prior to the actions.
+
+Amended the threading logic and thread deamon types, to help achieve the above, more graceful switch between states.
+   
 ### Update 5
 New Features
 
