@@ -41,7 +41,7 @@ where mac.hin.e.ip is the IP address of the computer running Ropey-Cam.py
 You should get a live stream from the camera.
 
 (Or for a local check, on the computer running Ropey-Cam.py point a browser 
-at 127.0.0.0:8000)
+at 127.0.0.1:8000)
 Or even do both, to get a stream on the local and the remote computers.
 
 In the background R-C is monitoring for motion in the video stream.
@@ -97,7 +97,7 @@ responsive, even on older platforms e.g Pi3A+.
 Install and activate a samba server in line with available online tutorials and access the Videos directory from a remote machine.
 On Pi platforms installing the Thunar file manager in the client machine is a convenient way to get thumbnail icons of both the video and snapshot files.
  
-Installing mpv media player and making that the default video player, in place of VLC, allows easy access to some of the video metedata (press I).
+Installing mpv media player and making that the default video player, in place of VLC, allows easy access to some of the video metadata (press I).
 (Just my preference!)
 
 Also tested is invoking a systemd set-up for automatic restart of the program on system reboot. Again following online tutorials.
