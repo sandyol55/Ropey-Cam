@@ -25,7 +25,7 @@ from datetime import datetime
 from PIL import Image
 from libcamera import Transform
 
-# Set HTML string'variables'
+# Set HTML string 'variables'
 stop_start ="Manual_Recording_START"
 message_1="Live streaming with Motion Detection ACTIVE"
 motion_button ="Motion_Detect_OFF"
@@ -34,19 +34,19 @@ motion_button ="Motion_Detect_OFF"
 # Keep WIDTH an integer multiple of 128 for maximum compatibility across platforms. Uncomment as necessary to set up the required aspect ratio and resolution.
 # The sets suggested have been selected to cover most combinations of Pi models and Cameras
 
-#This set is a compromise that can be used in most situations. 
+# This set is a compromise that can be used in most situations. 
 # VIDEO_WIDTH,VIDEO_HEIGHT=1024,768 # Recommended hi-res (recorded) resolution for 4:3 sensor modes
 # STREAM_WIDTH,STREAM_HEIGHT=512,384 # Recommended lo-res (streaming) resolution for 4:3 sensor modes 
 
-# VIDEO_WIDTH,VIDEO_HEIGHT=1280,720  # Recommended hi-res (recorded) resolution for 16:9 sensor modes
-# STREAM_WIDTH,STREAM_HEIGHT=512,304   # Recommended lo-res (streaming) resolution for 16:9 sensor modes
+VIDEO_WIDTH,VIDEO_HEIGHT=1280,720  # Recommended hi-res (recorded) resolution for 16:9 sensor modes
+STREAM_WIDTH,STREAM_HEIGHT=512,304   # Recommended lo-res (streaming) resolution for 16:9 sensor modes
 
 # These higher resolution sets are best suited to Pi3 and above
 # VIDEO_WIDTH,VIDEO_HEIGHT=1672,1254 # Advanced hi-res (recorded) resolution for 4:3 sensor modes
 # STREAM_WIDTH,STREAM_HEIGHT=768,576 # Advanced lo-res (streaming) resolution for 4:3 sensor modes 
 
-VIDEO_WIDTH,VIDEO_HEIGHT=1920,1080  # Advanced hi-res (recorded) resolution for 16:9 sensor modes
-STREAM_WIDTH,STREAM_HEIGHT=768,432   # Advanced lo-res (streaming) resolution for 16:9 sensor modes
+# VIDEO_WIDTH,VIDEO_HEIGHT=1920,1080  # Advanced hi-res (recorded) resolution for 16:9 sensor modes
+# STREAM_WIDTH,STREAM_HEIGHT=768,432   # Advanced lo-res (streaming) resolution for 16:9 sensor modes
 
 # Initialise variables and Booleans
 FRAMES_PER_SECOND = 30 # Adjust as required to set Video Framerate. eg 10 or 15fps may help allow lower power Pi models to perform without frame dropping.
@@ -86,7 +86,7 @@ os.chdir (thisdir)
 if not os.path.isdir ("Videos"):
     os.mkdir("Videos")
 
-os.environ["LIBCAMERA_LOG_LEVELS"] = "4"  #reduce libcamera messsages
+os.environ["LIBCAMERA_LOG_LEVELS"] = "4"  # reduce libcamera messsages
 
 def apply_timestamp(request):
     str_ms=str(time_ns()//1000000-4)
@@ -103,7 +103,7 @@ def capturebuffer():
         with cb_condition:
             cb_frame = buf2
             cb_condition.notify_all()
-            
+
 # Superimpose data on YUV420 frames then encode them as jpegs for sending to browser stream.
 def mjpeg_encode():
     global mjpeg_frame
@@ -120,7 +120,7 @@ def mjpeg_encode():
                 yuv[STREAM_HEIGHT+STREAM_HEIGHT//4:STREAM_HEIGHT+STREAM_HEIGHT//4+7,STREAM_WIDTH-40:]=v
                 yuv[STREAM_HEIGHT:STREAM_HEIGHT+7,STREAM_WIDTH//2-40:STREAM_WIDTH//2]=u
                 yuv[STREAM_HEIGHT+STREAM_HEIGHT//4:STREAM_HEIGHT+STREAM_HEIGHT//4+7,STREAM_WIDTH//2-40:STREAM_WIDTH//2]=v
-                                
+
             # Use simplejpeg instead of opencv to go from yuv to jpeg
             buf = encode_jpeg_yuv_planes(
                 yuv[:STREAM_HEIGHT],
@@ -130,7 +130,7 @@ def mjpeg_encode():
             with mjpeg_condition:
                 mjpeg_frame = buf
                 mjpeg_condition.notify_all()
-                
+
 class StreamingHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         global message_1,stop_start,was_button_pressed,motion_button,trigger_level,reset_trigger,should_delete_files,should_shutdown,should_exit,should_reboot,mjpeg_abort,video_count,set_manual_recording
@@ -143,12 +143,12 @@ class StreamingHandler(BaseHTTPRequestHandler):
             message_1="Live streaming with Manual Recording ACTIVE"
             stop_start="Manual_Recording_STOP"
             is_manual_recording=True
-            
+
         elif post_data == 'Manual_Recording_STOP':
             message_1="Live Streaming with Manual Recording Stopped. (Short delay to close recording .. then wait for next action)."
             stop_start="Manual_Recording_START"
             is_manual_recording=False
-            
+
         elif post_data == 'DELETE_ALL_FILES':
             message_1="Press DELETE_ALL_FILES again to delete all files - or RESET to cancel"
             if should_delete_files:
@@ -158,14 +158,14 @@ class StreamingHandler(BaseHTTPRequestHandler):
                 message_1 = "Video files deleted and video counter reset"
             else:
                 should_delete_files=True
-            
+
         elif post_data =='RESET':
             message_1="Reset EXIT, DELETE, REBOOT and SHUTDOWN to initial default conditions i.e. Cancel the first press"
             should_reboot=False
             should_delete_files=False
             should_exit=False
             should_shutdown=False
-           
+
         elif post_data == 'REBOOT':
             message_1=" Press REBOOT again if you're sure - or RESET to cancel. (Short delay while files are saved)."
             if should_reboot:
@@ -175,7 +175,7 @@ class StreamingHandler(BaseHTTPRequestHandler):
                 sleep(8)
                 os.system("sudo reboot now")
             should_reboot = True
-            
+
         elif post_data == 'SHUTDOWN':
             message_1="Press SHUTDOWN again if you're sure - or RESET to cancel. (Short delay while files are saved)."
             if should_shutdown:
@@ -185,7 +185,7 @@ class StreamingHandler(BaseHTTPRequestHandler):
                 sleep(8)
                 os.system("sudo shutdown now")
             should_shutdown=True
-                  
+
         elif post_data == 'EXIT':
             message_1=" Press EXIT again if you're sure - or RESET to cancel. (Short delay while files are saved)."
             if should_exit:
@@ -197,40 +197,39 @@ class StreamingHandler(BaseHTTPRequestHandler):
                 picam2.close()
                 sys.exit(0)
             should_exit = True
-            
+
         elif post_data == 'Motion_Detect_ON':
             message_1="Live streaming with Motion Detection ACTIVE"
             motion_button="Motion_Detect_OFF"
             trigger_level=reset_trigger
-            
+
         elif post_data == 'Motion_Detect_OFF':
             message_1="Live streaming with Motion Detection INACTIVE"
             motion_button="Motion_Detect_ON"
             trigger_level=999
-            
+
         elif post_data == 'Inc_TriggerLevel':
             message_1="Decrease motion sensitivity by increasing trigger level"
             trigger_level += 1
             reset_trigger += 1
-            
+
         elif post_data == 'Dec_TriggerLevel':
             message_1="Increase motion sensitivity by decreasing trigger level"
             if trigger_level>1:
                 trigger_level -= 1
                 reset_trigger -= 1
-        
+
         print("Control button pressed was {}".format(post_data))
         was_button_pressed =True
         self._redirect('/index.html')  # Redirect back to the home url
-        
+
     def _redirect(self, path):
         self.send_response(303)
         self.send_header('Content-type', 'text/html')
         self.send_header('Location', path)
         self.end_headers()
-        
+
     def do_GET(self):
-        # global mjpeg_condition
         PAGE = """\
             <!DOCTYPE html>
               <html lang="en">
@@ -242,7 +241,7 @@ class StreamingHandler(BaseHTTPRequestHandler):
                 <body>
                   <center>
                     <h2>Ropey-Cam   Live Streaming with motion-triggered Recording</h2>
-                    <img src="stream.mjpg" width="{ph1}" height="{ph2}" />    
+                    <img src="stream.mjpg" width="{ph1}" height="{ph2}" />
                     <p> {ph3}  </p>
                     <form action="/" method="POST">
                       <input type="submit" name="submit" value="{ph4}">
@@ -311,7 +310,6 @@ def motion():
     while not motion_abort:
         with cb_condition:
             cb_condition.wait()
-        
             previous_frame = None
             is_recording = False
             # last_motion_time = 0
@@ -321,7 +319,6 @@ def motion():
                     with cb_condition:
                         cb_condition.wait()
                         current_frame = cb_frame
-                        
                     current_frame = current_frame[:STREAM_HEIGHT,:]
                     if previous_frame is not None:
                         mse = mean(square(subtract(current_frame, previous_frame)))
@@ -334,14 +331,14 @@ def motion():
                                 full_file_title=file_title + ".mp4"
                                 icon=Image.fromarray(current_frame)
                                 icon.save(file_title+"_im.jpg")
-                                
+
                                 circ.open_output(PyavOutput(full_file_title))
+
                                 is_recording = True
-                                
                                 start_time = time()
                                 print()
                                 print(f'New recording starting after "trigger value" of  {mse:.1f}')
-                                
+
                             last_motion_time = time()
                         else:
                             if (is_recording and ((time() - last_motion_time) > 6)): # Wait for 3 seconds after motion stops before closing + 3 seconds for the buffer length.
@@ -352,7 +349,7 @@ def motion():
                                 print(f'which holds { (time()-start_time):.1f} seconds worth of video')
                                 print()
                                 print("Waiting for next trigger or button initiated command.")
-                                
+
                                 # If running low on disk space delete oldest file after writing most recent one
                                 total, used, _ = disk_usage("Videos")
                                 used_space=used/total
@@ -362,8 +359,7 @@ def motion():
                                     os.remove(oldest_snapshot)
                                     os.remove(oldest_video_file)
 
-                                    
-                  
+
                     previous_frame = current_frame
                     was_button_pressed = False
 
@@ -379,8 +375,8 @@ def stream():
         sleep(8)
         picam2.close()
         mjpeg_abort = True
-        
-        
+
+
 # Configure Camera and start it running
 picam2 = Picamera2()
 mode=picam2.sensor_modes[cam_mode_select]
@@ -395,7 +391,7 @@ picam2.configure(picam2.create_video_configuration(sensor={"output_size":mode['s
 encoder = H264Encoder(3300000, repeat=True,iperiod=45)
 picam2.pre_callback = apply_timestamp
 
-#Circular Buffer enabled and started
+# Circular Buffer enabled and started
 circ=CircularOutput2(buffer_duration_ms=3000)
 encoder.output=[circ]
 picam2.start_recording(encoder,circ)
@@ -424,4 +420,4 @@ motion_thread.start()
 
 # Join an 'infinite' thread to keep main thread alive 'til ready to exit by 'aborting' mjpeg thread
 mjpeg_thread.join()
- 
+
