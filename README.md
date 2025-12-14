@@ -59,17 +59,17 @@ Brief description of the effect of the control buttons.
 
 >will be replaced by Manual_Recording_Stop.
 
-**DELETE_ALL_FILES
+**DELETE_ALL_FILES**
 > will delete all the .mp4 video and associated triggerpoint .jpg files that are stored in the Videos subdirectory.
 
 > Requires to be confirmed with a second press.
 
-**EXIT
+**EXIT**
 > will end the Ropey-Cam program on the Raspberry Pi,
 
 >also requires confirmation with a second press.
 
-**RESET
+**RESET**
 >acts as a cancel button for any of the 4 other buttons,
 
 > to allow the first press of those buttons to be ignored and reset. 
@@ -126,7 +126,7 @@ Other recommended steps before deploying are:-
 As an example the screenshot below is taken from a Pi5, accessing Ropey-Cam running on a Pi3 Model B V1.2, both machines connected by Wi-Fi to a home network.
 
 
-![Test screenshot](screenshot_latency.png)
+![Test screenshot](latency_screenshot.png)
 
 In the upper left is an ssh session running htop on the remote Pi3 during an active recording. Lots of spare CPU and memory capacity.
 
