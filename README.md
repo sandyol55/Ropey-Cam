@@ -1,186 +1,143 @@
-# Ropey-Cam
-Basic simultaneous, local stream to browser, and motion triggered recording for RPi.  
-Based on stitching together examples from the Picamera2 repository.  
-https://github.com/raspberrypi/picamera2/tree/main/examples.  
-Button controls in browser inspired by:-  
-https://www.e-tinkers.com/2018/04/how-to-control-raspberry-pi-gpio-via-http-web-server/  
-Thanks to signag for coding suggestions  
-https://github.com/signag/raspi-cam-srv
+![ropey title](./Ropey_CAM.png "Title")
 
-Not a finished/polished item but suitable as a basis for basic remote operation of an RPi Camera.
-Typical uses would be domestic or wildlife surveillance, with a low resolution live view via a browser,
-and the facility to capture high resolution recordings for later replay and analysis.
+### Ropey-Cam is a Python-based surveillance camera system designed for Raspberry Pi single-board computers with attached camera modules. The system provides real-time, low-latency, MJPEG video streaming to web browsers, while simultaneously monitoring for motion, and recording high-quality H.264/.mp4 video clips when motion is detected.
 
-Why Ropey-Cam?
-It's stitched together from examples and code snippets, with minimal Python skills, and with numerous threads.
+As a long term user of the comprehensive [RPi_Cam_Web_Interface](https://github.com/silvanmelchior/RPi_Cam_Web_Interface) with various RPi cameras (V1,V2 and HQ), it was frustrating not being able to use third party cameras or any of the later RPi modules with RCWI. Unable to find any libcamera/Picamera2 based alternatives, and as a learning exercise, work started on a basic -*very basic*- alternative.
 
-## Usage
-On a machine with  RPIOS installed (full not lite - but see later instructions for a lite installation)
+For those looking for more comprehensive features, there is now available [raspi-cam-srv](https://github.com/signag/raspi-cam-srv).
 
-Clone or copy / download Ropey-Cam.py (RopeyCamBuffer.py) to a machine with an attached camera.
-Ensure you have opencv installed on that machine, as per instructions in the PiCamera2 manual.
-https://datasheets.raspberrypi.com/camera/picamera2-manual.pdf
-essentially 
+"Ropey-Cam" reflects its construction methodology: it is assembled from code snippets and examples from the Picamera2 repository, with minimal Python complexity, but uses a multi-threaded architecture to handle concurrent operations. In it's basic form, when installed on a RPi with the standard desktop OS, the only additional dependency is OpenCV.
 
-sudo apt install python3-opencv -y
-
-The current versions, (Ropey-Cam and RopeyCamBuffer) are 'hard' configured to use camera Mode 1,
-which gives a full-frame 2x2 binned 10 bit output on both V2 and V3 camera modules.  
-If you plan to use a different camera, find the cam_mode_select variable (line 50 in Ropey-Cam.py)
-(line 80 in RopeyCamBuffer.py)) and change it to an appropriate mode for your camera.
-Normally best to pick a mode with a high frame rate, but
-may also want to choose a full uncropped sensor mode. The choice is yours.
-
-The image sizes of 1024x768 for video and 1/2 size 512x384 for streaming are also hard configured,
-but suggested alternative values for other sensors or modes are in the comments.
-
-Once loaded and after any changes have been made to the code then:-
-
-Run Ropey-Cam.py (RopeyCamBuffer.py) and from another computer point a browser at <mac.hin.e.ip:8000>
-where mac.hin.e.ip is the IP address of the computer running Ropey-Cam.py
-You should get a live stream from the camera.
-
-(Or for a local check, on the computer running Ropey-Cam.py point a browser 
-at 127.0.0.1:8000)
-Or even do both, to get a stream on the local and the remote computers.
-
-In the background R-C is monitoring for motion in the video stream.
-
-If sufficent change from one video frame to the next has occurred
-it will start a video recording. The recording will stop when the 
-motion has dropped below the set (mse) TriggerLevel.
-
-If the frame to frame noise is so large that the system is permanently triggered and recording then 
-use the new Inc_Trigger_Level button to increase the trigger level value and decrease the sensitivity. 
-(Then adjust the TriggerLevel in the code to change the initial sensitivity of the trigger level).
-
-When first run Ropey-Cam should create a sub-folder "Videos" where all the triggered videos
-and associated monochrome jpeg snapshots of the moment of triggering will be stored.
-
-Note that the stream should continue while video is being recorded and stored.
-
-The web page has buttons and a message feedback area to allow some control from the remote browser.
-
-## Circular Buffer Version
-
-### Update 6
-New SHUTDOWN button and facility added to completely shutdown the remote machine, in addition to the existing
-REBOOT and EXIT buttons.  
-
-Changes
-
-Buttons re-arranged and DELETE_ALL_FILES highlighted in red.
-
-Improved the exit and shutdown/reboot features to close files more gracefully prior to the actions.
-
-Amended the threading logic and thread deamon types, to help achieve the above, more graceful switch between states.
-   
-### Update 5
-New Features
-
-If the disk usage is above a certain level (80%) then, after each saved event, the oldest file pair in the Videos directory is deleted.
+### Quick Start Example
  
-The trigger Level for the motion detection is now adjustable via web browser buttons.
+On Raspberry Pi running a desktop RPiOS and with camera attached, open a terminal and enter :-
 
-If on start-up the system is recording, perhaps due to noise difference between frames, then Increment the Trigger level.
+	sudo apt install python3-opencv -y
+	git clone https://github.com/sandyol55/Ropey-Cam
+	cd Ropey-Cam
+	./RopeyCamBuffer.py
 
-Also new is an in-stream stamp in the top left corner showing the current frame to frame mse result versus the current Trigger Level.
+Then from another computer on the same network browse to raspberry.pi.ip:8000
 
-Changes
+typically an address like 192.168.0.120:8000.
 
-Many variable names have been updated to reflect 'best practice' so the code should be more readable. 
-A number of previously hard coded settings have been made parametric to adjust in line with the selected video frame dimensions.
+(Or, on the Raspberry Pi computer open a local browser and request 127.0.0.1:8000  -  or even do both to get simultaneous streams to multiple browsers. )
+
+The browser should present a home page as below
+
+---
+
+![Browser screen](browser_screenshot.png)
+
+### Basic operation.
+
+The figures in the top left indicate the measure of (mse) frame to frame change in the streaming video against the currently set trigger level. If motion (or noise) in the video is present, in excess of the trigger level, then video  recording will be activated as indicated by the red REC stamp in the top right.
+
+If recording is activated when no apparent motion is present in the video then pressing the Inc_TriggerLevel button repeatedly will decrease the sensitivity to frame to frame changes.
+
+Similarly if motion in the frame does not trigger recording press the Dec_TriggerLevel button repeatedly until recording is triggered. 
+
+Once calibrated for the motion/noise environment, test that deliberate motion triggers recording.
+
+The REC stamp will remain for ~ 6 seconds after motion has dropped below the trigger level to allow the full video file, containing ~3 seconds pre-trigger, X seconds of motion and 3 seconds of post-motion video, to be saved to disk.
+
+This recording is happening in the background while the live stream continues. 
+
+### Control buttons
+Brief description of the effect of the control buttons.
+
+**Motion_Detect_Off**
+>  will disable the motion detection, but retain the live stream.
+
+> will be replaced by Motion_Detect_On
+
+**Inc_ and Dec_TriggerLevel**
+>as described above modify the sensitivity to motion
+
+**Manual_Recording_Start**
+> will initiate a recording irrespective of motion triggering.
+
+>will be replaced by Manual_Recording_Stop.
+
+**DELETE_ALL_FILES
+> will delete all the .mp4 video and associated triggerpoint .jpg files that are stored in the Videos subdirectory.
+
+> Requires to be confirmed with a second press.
+
+**EXIT
+> will end the Ropey-Cam program on the Raspberry Pi,
+
+>also requires confirmation with a second press.
+
+**RESET
+>acts as a cancel button for any of the 4 other buttons,
+
+> to allow the first press of those buttons to be ignored and reset. 
+
+**REBOOT**
+>will reboot the Raspberry Pi. 
+
+>Best used in an advanced set-up where Ropey_Cam has been set to 
+start on boot up.
+
+**SHUTDOWN**
+> will shutdown the Raspberry Pi.
+
+> Like EXIT and REBOOT there is a built in delay to allow any in-progress recordings to be stored cleanly.
+
+---
+
+### Pre-deployment configuration
+
+Typical use is expected to be in a headless remote mode.
+
+Before deploying it will be useful to examine the code and, if necessary, make some changes to match the Pi and camera being used,  e.g.
+
+>  To select the aspect ratio of the sensor being used.
+
+> To select the resolution of the main video recording stream and the browser stream
+
+> To select the required framerate
+
+> And to select the mode in which to operate the sensor.
+
+These are controlled by documented commented lines within the code at ~lines 33-49, line 52 and line 80. 
+
+Edit as required.
+
+The default configuration is currently :-
+
+16:9 output with a 1280x720 main stream resolution and 512x384 for the browser stream, and a framerate of 30fps.
+
+The sensor default mode is set to 1, which will typically give a full frame (16:9) output 2x2 binned mode on HQ and V3 cameras.
+
+Other recommended steps before deploying are:-
+
+> set the Raspberry Pi up as a Samba server  
+
+> set the Ropey-Cam program to start on boot, with a systemd service.
+
+> Lots of online tutorials for these steps.
+
+---
+
+### Performance
+
+As an example the screenshot below is taken from a Pi5, accessing Ropey-Cam running on a Pi3 Model B V1.2, both machines connected by Wi-Fi to a home network.
+
+
+![Test screenshot](screenshot_latency.png)
+
+In the upper left is an ssh session running htop on the remote Pi3 during an active recording. Lots of spare CPU and memory capacity.
+
+In the lower left the Thunar file manager is accessing the Videos subdirectory on the remote Pi3 via the network samba share. (Using a separate file manager from the inbuilt pcmanfm allows the thumbnail icon sizes to be increased without affecting the desktop).
+
+And on the right is a browser image showing the latency between a stopwatch in the foreground and in the background, it's image after captured, processed and passed through the browser stream and displayed.  The latency of 170ms is in the mid-range of the values seen in this particular configuration, which were typically in the 150 to 190 ms range. 
+
+### Acknowledgements 
+
+Much of the code is taken from the examples, discussions and responses to issues as found in the [Picamera2 Github repository](https://github.com/raspberrypi/picamera2) .
  
-To aid in file review and video replay the system has been tested with a samba server running in the background and been found to be
-responsive, even on older platforms e.g Pi3A+.
-
-Install and activate a samba server in line with available online tutorials and access the Videos directory from a remote machine.
-On Pi platforms installing the Thunar file manager in the client machine is a convenient way to get thumbnail icons of both the video and snapshot files.
+ The method of button control was inspired by [this article](https://www.e-tinkers.com/2018/04/how-to-control-raspberry-pi-gpio-via-http-web-server/) .
  
-Installing mpv media player and making that the default video player, in place of VLC, allows easy access to some of the video metadata (press I).
-(Just my preference!)
-
-Also tested is invoking a systemd set-up for automatic restart of the program on system reboot. Again following online tutorials.
-
-Can add the detailed instructions for both of these if likely to help new users.
-
-Both of the above (samba and systemd auto start on reboot) have been tested successfully with Pi3A+ as the camera server.
-
-If a Pi4 or Pi5 is used then considerably higher resolutions and framerates than the defaults in the current code can be supported.
-
-## Lite installation
-The main instructions assume RopeyCam is to be run with the full desktop OS installed, as this requires the least additional dependencies to be installed.
-
-A Lite installation  will leave more free memory and only requires an extra few steps to set up.
-
-At time of writing Trixie is the latest RPIOS.
-
-Flash a new Lite 64-bit RPIOS image to a card, with SSH configured.
-
-Place the card in the machine with camera installed and power on.
-
-If doing a headless install WAIT until the full image installation and power up sequence is complete.
-
-SSH in and do an initial
-
-sudo apt update 
-
-sudo apt full-upgrade
-
-sudo apt install python3-picamera2 --no-install-recommends
-
-sudo apt install python3-opencv
-
-If planning to clone from the github:-
-
-sudo apt install git
-
-Then install RopeyCam either by git cloning or scp from another machine that has a copy.
-
-Then cd into the directory containing RopeyCam
-
-And ./RopeyCamBuffer.py
-
-
-
-### Update 4
-Further updates to improve the button functionality and logic.
-Buttons are now:-
-
-Manual_Recording_START and Manual_Recording_STOP, which can be used to start and stop recordings, independently of the motion trigger.
-(Best used after disabling Motion Detection).
-
-DELETE is unchanged from previous version and needs a second press to confirm deletion of all stored video and image files.
-
-
-RESET is also basically unchanged from previous version and cancels the first press of DELETE REBOOT and EXIT.
-
-REBOOT is also unchanged and, when pressed twice reboots the remote RopeyCam server.
-
-EXIT will, when pressed twice, shutdown the RopeyCam server on the remote machine.
-
-Motion_Detect_OFF and Motion_Detect_ON disable and re-enable the Motion Detection in the remote Camera/Server.
-
-A REC timestamp has been added to the streamed frames to help identify when recording is underway.
-
-The conversion of the YUV420 lo-res image arrays to JPEGs for streaming has been updated to be done within simplejpeg, rather
-than a combined OpenCV and simplejpeg operation.
-### Update 3
-Added a version that uses the CircularOutput buffer to record video from 5 secs before the trigger motion
-This has been updated to use the relatively new PyavOutput and CicularOutput2 methods to allow direct recording of mp4 files.
-### Update 2
-The browser control buttons have been updated to be more useful.
-
-STOP halts the streaming and video recording and is replaced by START when pressed
-
-DELETE will delete all the recorded video files - needs a second press to confirm
-
-RESET will undo the first press of either the DELETE or REBOOT buttons
-
-Button4 is still a spare
-
-REBOOT wil reboot the Pi and also needs a second press - most useful if the program is set to autorun on boot!
-
-Mot_OFF will disable the motion Triggering, and is replaced by Mot_ON when pressed
-
-
+ And [signag](https://github.com/signag/raspi-cam-srv) offered coding suggestions against an early version of the code. 
