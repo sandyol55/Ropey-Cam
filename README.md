@@ -1,4 +1,4 @@
-![ropey title](./Ropey_CAM.png "Title")
+![ropey title](Ropey-CAM.png)
 
 ### Ropey-Cam is a Python-based surveillance camera system designed for Raspberry Pi single-board computers with attached camera modules. The system provides real-time, low-latency, MJPEG video streaming to web browsers, while simultaneously monitoring for motion, and recording high-quality H.264/.mp4 video clips when motion is detected.
 
