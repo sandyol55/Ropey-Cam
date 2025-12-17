@@ -1,16 +1,16 @@
-![ropey title](Ropey-Cam.png)
+![ropey title](./Ropey_CAM.png "Title")
 
-### Ropey-Cam is a Python-based surveillance camera system designed for Raspberry Pi single-board computers with attached camera modules. The system provides real-time, low-latency, MJPEG video streaming to web browsers, while simultaneously monitoring for motion, and recording high-quality H.264/.mp4 video clips when motion is detected.
+### Ropey-Cam is a Python-based surveillance camera system, designed for Raspberry Pi single-board computers with attached camera modules. The system provides real-time, low-latency, MJPEG video streaming to web browsers, while simultaneously monitoring for motion, and recording high-quality H.264/.mp4 video clips when motion is detected.
 
 As a long term user of the comprehensive [RPi_Cam_Web_Interface](https://github.com/silvanmelchior/RPi_Cam_Web_Interface) with various RPi cameras (V1,V2 and HQ), it was frustrating not being able to use third party cameras or any of the later RPi modules with RCWI. Unable to find any libcamera/Picamera2 based alternatives, and as a learning exercise, work started on a basic -*very basic*- alternative.
 
-For those looking for more comprehensive features, there is now available [raspi-cam-srv](https://github.com/signag/raspi-cam-srv).
+For those looking for more comprehensive features, there is available the very fully featured [raspi-cam-srv](https://github.com/signag/raspi-cam-srv).
 
-"Ropey-Cam" reflects its construction methodology: it is assembled from code snippets and examples from the Picamera2 repository, with minimal Python complexity, but uses a multi-threaded architecture to handle concurrent operations. In it's basic form, when installed on a RPi with the standard desktop OS, the only additional dependency is OpenCV.
+"Ropey-Cam" reflects its construction methodology: it is assembled from code snippets and examples from the Picamera2 repository, with minimal Python complexity, and uses a multi-threaded architecture to handle concurrent operations. In it's basic form, when installed on a RPi with the standard desktop OS, the only additional dependency is OpenCV.
 
 ### Quick Start Example
  
-On Raspberry Pi running a desktop RPiOS and with camera attached, open a terminal and enter :-
+On a Raspberry Pi running a desktop RPiOS and with camera attached, open a terminal and enter :-
 
 	sudo apt install python3-opencv -y
 	git clone https://github.com/sandyol55/Ropey-Cam
@@ -21,7 +21,7 @@ Then from another computer on the same network browse to raspberry.pi.ip:8000
 
 typically an address like 192.168.0.120:8000.
 
-(Or, on the Raspberry Pi computer open a local browser and request 127.0.0.1:8000  -  or even do both to get simultaneous streams to multiple browsers. )
+(Or, on the Raspberry Pi computer, open a local browser and request 127.0.0.1:8000  -  or even do both - to get simultaneous streams to multiple browsers.)
 
 The browser should present a home page as below
 
@@ -59,18 +59,18 @@ Brief description of the effect of the control buttons.
 
 >will be replaced by Manual_Recording_Stop.
 
-**DELETE_ALL_FILES**
+**DELETE_ALL_FILES
 > will delete all the .mp4 video and associated triggerpoint .jpg files that are stored in the Videos subdirectory.
 
 > Requires to be confirmed with a second press.
 
-**EXIT**
+**EXIT
 > will end the Ropey-Cam program on the Raspberry Pi,
 
 >also requires confirmation with a second press.
 
-**RESET**
->acts as a cancel button for any of the 4 other buttons,
+**RESET
+>acts as a cancel button for any of the 4 other system buttons,
 
 > to allow the first press of those buttons to be ignored and reset. 
 
@@ -109,7 +109,7 @@ The default configuration is currently :-
 
 16:9 output with a 1280x720 main stream resolution and 512x384 for the browser stream, and a framerate of 30fps.
 
-The sensor default mode is set to 1, which will typically give a full frame (16:9) output 2x2 binned mode on HQ and V3 cameras.
+The sensor default mode is set to 1, which will typically give a full frame (16:9) 2x2 binned mode on HQ and V3 cameras, or a full frame (4:3) 2x2 binned mode on V1 or V2 cameras. 
 
 Other recommended steps before deploying are:-
 
@@ -117,13 +117,13 @@ Other recommended steps before deploying are:-
 
 > set the Ropey-Cam program to start on boot, with a systemd service.
 
-> Lots of online tutorials for these steps.
+> (Lots of online tutorials for these steps).
 
 ---
 
 ### Performance
 
-As an example the screenshot below is taken from a Pi5, accessing Ropey-Cam running on a Pi3 Model B V1.2, both machines connected by Wi-Fi to a home network.
+As an example the screenshot below is taken from a Pi5, accessing Ropey-Cam running on a Pi3 Model B V1.2, with both machines connected via Wi-Fi to a home network.
 
 
 ![Test screenshot](latency_screenshot.png)
@@ -132,7 +132,9 @@ In the upper left is an ssh session running htop on the remote Pi3 during an act
 
 In the lower left the Thunar file manager is accessing the Videos subdirectory on the remote Pi3 via the network samba share. (Using a separate file manager from the inbuilt pcmanfm allows the thumbnail icon sizes to be increased without affecting the desktop).
 
-And on the right is a browser image showing the latency between a stopwatch in the foreground and in the background, it's image after captured, processed and passed through the browser stream and displayed.  The latency of 170ms is in the mid-range of the values seen in this particular configuration, which were typically in the 150 to 190 ms range. 
+And on the right is the browser, showing an image from the camera while it is being pointed at the browsing computer's screen - with a stopwatch in the foreground.
+
+The difference between the stopwatch time in the foreground, and the background - earlier - image of the stopwatch that has been captured, processed, passed through the network to the browser and displayed, is a measure of the system latency.  The latency of 170ms is in the mid-range of the values seen in this particular configuration, which were typically in the 150 to 190 ms range. 
 
 ### Acknowledgements 
 
@@ -141,3 +143,6 @@ Much of the code is taken from the examples, discussions and responses to issues
  The method of button control was inspired by [this article](https://www.e-tinkers.com/2018/04/how-to-control-raspberry-pi-gpio-via-http-web-server/) .
  
  And [signag](https://github.com/signag/raspi-cam-srv) offered coding suggestions against an early version of the code. 
+ 
+ [Lite Installation](docs/lite.md)
+ 
