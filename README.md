@@ -146,5 +146,5 @@ Much of the code is taken from the examples, discussions and responses to issues
  
  [Samba share](docs/samba.md)
  
- [Start on reboot](start_on_boot.md)
+ [Start on reboot](docs/start_on_boot.md)
  
