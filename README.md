@@ -1,8 +1,8 @@
-![ropey title](./Ropey-Cam.png )
+![ropey title](./Ropey-Cam.png)
 
 ### Ropey-Cam is a Python-based surveillance camera system, designed for Raspberry Pi single-board computers with attached camera modules. The system provides real-time, low-latency, MJPEG video streaming to web browsers, while simultaneously monitoring for motion, and recording high-quality H.264/.mp4 video clips when motion is detected.
 
-As a long term user of the comprehensive [RPi_Cam_Web_Interface](https://github.com/silvanmelchior/RPi_Cam_Web_Interface) with various RPi cameras (V1,V2 and HQ), it was frustrating not being able to use third party cameras or any of the later RPi modules with RCWI. Unable to find any libcamera/Picamera2 based alternatives, and as a learning exercise, work started on a basic -*very basic*- alternative.
+As a long term user of the comprehensive [RPi_Cam_Web_Interface](https://github.com/silvanmelchior/RPi_Cam_Web_Interface) with various RPi cameras (V1,V2 and HQ), it was frustrating not being able to use third party cameras or any of the later RPi camera modules with RCWI. Unable to find any libcamera/Picamera2 based alternatives, and as a learning exercise, work started on a basic -*very basic*- alternative.
 
 For those looking for more comprehensive features, there is available the very fully featured [raspi-cam-srv](https://github.com/signag/raspi-cam-srv).
 
@@ -17,9 +17,7 @@ On a Raspberry Pi running a desktop RPiOS and with camera attached, open a termi
 	cd Ropey-Cam
 	./RopeyCamBuffer.py
 
-Then from another computer on the same network browse to raspberry.pi.ip:8000
-
-typically an address like 192.168.0.120:8000.
+Then from another computer on the same network browse to raspberry.pi.ip:8000, typically an address like 192.168.0.120:8000.
 
 (Or, on the Raspberry Pi computer, open a local browser and request 127.0.0.1:8000  -  or even do both - to get simultaneous streams to multiple browsers.)
 
@@ -31,7 +29,7 @@ The browser should present a home page as below
 
 ### Basic operation.
 
-The figures in the top left indicate the measure of (mse) frame to frame change in the streaming video against the currently set trigger level. If motion (or noise) in the video is present, in excess of the trigger level, then video  recording will be activated as indicated by the red REC stamp in the top right.
+The figures in the top left of the streaming video frame indicate the measure of (mse) frame to frame change in the video, against the currently set trigger level. If motion (or noise) in the video is present, in excess of the trigger level, then video  recording will be activated as indicated by the red REC stamp in the top right.
 
 If recording is activated when no apparent motion is present in the video then pressing the Inc_TriggerLevel button repeatedly will decrease the sensitivity to frame to frame changes.
 
@@ -39,9 +37,9 @@ Similarly if motion in the frame does not trigger recording press the Dec_Trigge
 
 Once calibrated for the motion/noise environment, test that deliberate motion triggers recording.
 
-The REC stamp will remain for ~ 6 seconds after motion has dropped below the trigger level to allow the full video file, containing ~3 seconds pre-trigger, X seconds of motion and 3 seconds of post-motion video, to be saved to disk.
+The REC stamp will remain for ~ 6 seconds after motion has dropped below the trigger level to allow the full video file, containing ~3 seconds pre-trigger, X seconds of motion and ~3 seconds of post-motion video, to be saved to disk.
 
-This recording is happening in the background while the live stream continues. 
+This recording is happening in the background while the live stream continues uninterrupted. 
 
 ### Control buttons
 Brief description of the effect of the control buttons.
@@ -52,24 +50,24 @@ Brief description of the effect of the control buttons.
 > will be replaced by Motion_Detect_On
 
 **Inc_ and Dec_TriggerLevel**
->as described above modify the sensitivity to motion
+>as described above, modify the sensitivity to motion
 
 **Manual_Recording_Start**
 > will initiate a recording irrespective of motion triggering.
 
 >will be replaced by Manual_Recording_Stop.
 
-**DELETE_ALL_FILES
-> will delete all the .mp4 video and associated triggerpoint .jpg files that are stored in the Videos subdirectory.
+**DELETE_ALL_FILES**
+> will delete all the .mp4 video and associated trigger-point .jpg files that are stored in the Videos subdirectory.
 
 > Requires to be confirmed with a second press.
 
-**EXIT
+**EXIT**
 > will end the Ropey-Cam program on the Raspberry Pi,
 
 >also requires confirmation with a second press.
 
-**RESET
+**RESET**
 >acts as a cancel button for any of the 4 other system buttons,
 
 > to allow the first press of those buttons to be ignored and reset. 
@@ -77,7 +75,7 @@ Brief description of the effect of the control buttons.
 **REBOOT**
 >will reboot the Raspberry Pi. 
 
->Best used in an advanced set-up where Ropey_Cam has been set to 
+>Best used in an advanced set-up where Ropey-Cam has been set to 
 start on boot up.
 
 **SHUTDOWN**
@@ -107,7 +105,7 @@ Edit as required.
 
 The default configuration is currently :-
 
-16:9 output with a 1280x720 main stream resolution and 512x384 for the browser stream, and a framerate of 30fps.
+16:9 output with a 1280x720 main stream resolution and 512x384 for the browser stream, and a framerate of 25fps.
 
 The sensor default mode is set to 1, which will typically give a full frame (16:9) 2x2 binned mode on HQ and V3 cameras, or a full frame (4:3) 2x2 binned mode on V1 or V2 cameras. 
 
@@ -117,7 +115,7 @@ Other recommended steps before deploying are:-
 
 > set the Ropey-Cam program to start on boot, with a systemd service.
 
-> (Lots of online tutorials for these steps).
+> (Lots of online tutorials for these steps, but links to guides for creating  both of these services are included at the bottom of this page).
 
 ---
 
@@ -145,4 +143,8 @@ Much of the code is taken from the examples, discussions and responses to issues
  And [signag](https://github.com/signag/raspi-cam-srv) offered coding suggestions against an early version of the code. 
  
  [Lite Installation](docs/lite.md)
+ 
+ [Samba share](docs/samba.md)
+ 
+ [Start on reboot](start_on_boot.md)
  

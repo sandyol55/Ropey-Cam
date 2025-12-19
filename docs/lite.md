@@ -11,11 +11,11 @@ Although a full RPiOS is recommended for all Pi variants, if using a Pi Zero2W o
 
 `sudo apt update && sudo apt full-upgrade -y`
 
-`sudo apt install python3-picamera2 --no-install-recommends`
+`sudo apt install python3-picamera2 --no-install-recommends -y`
 
-`sudo apt install python3-opencv`
+`sudo apt install python3-opencv -y`
 
-`sudo apt install git`
+`sudo apt install git -y`
 
 `git clone https://github.com/sandyol55/Ropey-Cam`
 
@@ -27,14 +27,19 @@ Then continue as per the main page documentation to point a browser at the Raspb
 
 At this point you should see the image from the camera in the browser page and messages about the status in the terminal window.
 
-Note that closing the terminal window will signal the program to hang up so the server will no longer be accessible.
+Note that closing the terminal window will signal the program to hang up at which point the server will no longer be accessible.
 
 To allow the terminal to be closed, while leaving the server running use :-
 
-`nohup ./RopeyCamBuffer.py &`
+`nohup ./RopeyCamBuffer.py`
+
+Or, to avoid the console and error messages filling up the nohup output log :-
+
+`nohup ./RopeyCamBuffer.py >/dev/null 2>&1`
+
 
 ## Resources
 
 A screenshot from a Pi400 accessing RopeyCamBuffer.py running on a Pi3A+  shows usefully lower memory usage compared to the 'Desktop' version shown in the main page.
 
-![Lite Installation screenshot from a Pi400](lite_screenshot.png)
+![Lite Installation screenshot from a Pi400](lite_screenshot.png "Screenshot")
