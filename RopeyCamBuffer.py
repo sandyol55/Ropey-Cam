@@ -12,7 +12,7 @@ import logging
 import socketserver
 from glob import glob
 from shutil import disk_usage
-from numpy import mean, square,subtract
+from numpy import mean, square,subtract, copy
 from simplejpeg import encode_jpeg_yuv_planes
 from cv2 import putText, FONT_HERSHEY_SIMPLEX
 from time import strftime, sleep, time, time_ns
@@ -49,7 +49,7 @@ STREAM_WIDTH,STREAM_HEIGHT=512,304   # Recommended lo-res (streaming) resolution
 # STREAM_WIDTH,STREAM_HEIGHT=768,432   # Advanced lo-res (streaming) resolution for 16:9 sensor modes
 
 # Initialise variables and Booleans
-FRAMES_PER_SECOND = 30 # Adjust as required to set Video Framerate. eg 10 or 15fps may help allow lower power Pi models to perform without frame dropping.
+FRAMES_PER_SECOND = 25 # Adjust as required to set Video Framerate. eg 10 or 15fps may help allow lower power Pi models to perform without frame dropping.
 trigger_level=10 # Sensitivity of frame to frame change for 'motion' detection 
 reset_trigger=trigger_level # Copy of value used to reset trigger_level after disabling motion detection.
 video_count=0
@@ -89,7 +89,7 @@ if not os.path.isdir ("Videos"):
 os.environ["LIBCAMERA_LOG_LEVELS"] = "4"  # reduce libcamera messsages
 
 def apply_timestamp(request):
-    str_ms=str(time_ns()//1000000-4)
+    str_ms=str(time_ns()//1000000-3)
     ms=str_ms[-3:]
     timestamp = strftime("%Y-%m-%d %X.")+ms
     with MappedArray(request, "main") as m:
@@ -110,7 +110,7 @@ def mjpeg_encode():
     while not mjpeg_abort:
         with cb_condition:
             cb_condition.wait()
-            yuv = cb_frame
+            yuv = copy(cb_frame)
             # embed result of frame to frame mse calculation, versus current trigger level in top left of frame.
             putText(yuv,str(int(10*mse)/10)+"/"+str(trigger_level),(12,22),font,scale//2,(y_mse_stamp,0,0),thickness)
             if is_recording:
@@ -253,7 +253,7 @@ class StreamingHandler(BaseHTTPRequestHandler):
                     <form action="/" method="POST">
                       <input type="submit" name="submit" value="DELETE_ALL_FILES" style="background-color:lightpink;">
                       <input type="submit" name="submit" value="EXIT">
-                      <input type="submit" name="submit" value="RESET">
+                      <input type="submit" name="submit" value="RESET" style=background-color:lightgreen>
                       <input type="submit" name="submit" value="REBOOT">
                       <input type="submit" name="submit" value="SHUTDOWN">
                     </form>
@@ -312,13 +312,11 @@ def motion():
             cb_condition.wait()
             previous_frame = None
             is_recording = False
-            # last_motion_time = 0
-            # start_time=0
             if not was_button_pressed: # Ignore motion check if button was recently pressed
                 while True:
                     with cb_condition:
                         cb_condition.wait()
-                        current_frame = cb_frame
+                        current_frame = copy(cb_frame)
                     current_frame = current_frame[:STREAM_HEIGHT,:]
                     if previous_frame is not None:
                         mse = mean(square(subtract(current_frame, previous_frame)))
@@ -384,8 +382,8 @@ mode=picam2.sensor_modes[cam_mode_select]
 picam2.configure(picam2.create_video_configuration(sensor={"output_size":mode['size'],'bit_depth':mode['bit_depth']},
                                                    controls={'FrameRate' : FRAMES_PER_SECOND},
                                                    transform=Transform(hflip=False,vflip=False),
-                                                     main={"size": (VIDEO_WIDTH,VIDEO_HEIGHT),'format':"YUV420"},
-                                                       lores={"size": (STREAM_WIDTH, STREAM_HEIGHT),'format':"YUV420"},buffer_count=12))
+                                                     main={"size": (VIDEO_WIDTH,VIDEO_HEIGHT),'format':"BGR888"},
+                                                       lores={"size": (STREAM_WIDTH, STREAM_HEIGHT),'format':"YUV420"},buffer_count=10))
 
 
 encoder = H264Encoder(3300000, repeat=True,iperiod=45)
