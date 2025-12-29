@@ -5,7 +5,7 @@ Although a full RPiOS is recommended for all Pi variants, if using a Pi Zero2W o
 
 >Insert card into the Pi with a connected camera module.
 
->Power on and *wait* until the full image installation and reboot sequences are complete.
+>Power on and *wait* until the full image installation and reboot sequences are complete. (Could take up to 15 minutes with a slow SD card! )
 
 >SSH in to the Pi and :-
 
@@ -40,6 +40,6 @@ Or, to avoid the console and error messages filling up the nohup output log :-
 
 ## Resources
 
-A screenshot from a Pi400 accessing RopeyCamBuffer.py running on a Pi3A+  shows usefully lower memory usage compared to the 'Desktop' version shown in the main page.
+A screenshot from a Pi400 accessing RopeyCamBuffer.py running on a Pi3A+  shows usefully lower memory usage compared to the 'Desktop' version running on a Pi3B shown in the main page.
 
 ![Lite Installation screenshot from a Pi400](lite_screenshot.png "Screenshot")

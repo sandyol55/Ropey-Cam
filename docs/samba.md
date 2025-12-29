@@ -96,6 +96,6 @@ replacing the IP address with the address of *your* Raspberry Pi server device.
 
 The share should open.
 
-To make a more permanent link got to This PC and from the ... menu select Map Network drive and fill in the prompted details, using the same \\server\share format.
+To make a more permanent link go to This PC and from the ... menu select Map Network drive and fill in the prompted details, using the same \\\server\share format.
 
  

@@ -31,13 +31,13 @@ The browser should present a home page as below
 
 The figures in the top left of the streaming video frame indicate the measure of (mse) frame to frame change in the video, against the currently set trigger level. If motion (or noise) in the video is present, in excess of the trigger level, then video  recording will be activated as indicated by the red REC stamp in the top right.
 
-If recording is activated when no apparent motion is present in the video then pressing the Inc_TriggerLevel button repeatedly will decrease the sensitivity to frame to frame changes.
+If recording is activated when no apparent motion is present in the video, pressing the Inc_TriggerLevel button repeatedly will increase the frame to frame change threshold  at which recording is triggered.
 
 Similarly if motion in the frame does not trigger recording press the Dec_TriggerLevel button repeatedly until recording is triggered. 
 
 Once calibrated for the motion/noise environment, test that deliberate motion triggers recording.
 
-The REC stamp will remain for ~ 6 seconds after motion has dropped below the trigger level to allow the full video file, containing ~3 seconds pre-trigger, X seconds of motion and ~3 seconds of post-motion video, to be saved to disk.
+The REC stamp will remain for ~ 6 seconds after motion has dropped below the trigger level, while the full video file - containing ~3 seconds pre-trigger, X seconds of motion and ~3 seconds of post-motion video -is saved to disk.
 
 This recording is happening in the background while the live stream continues uninterrupted. 
 
@@ -58,7 +58,7 @@ Brief description of the effect of the control buttons.
 >will be replaced by Manual_Recording_Stop.
 
 **DELETE_ALL_FILES**
-> will delete all the .mp4 video and associated trigger-point .jpg files that are stored in the Videos subdirectory.
+> will delete all the timestamped .mp4 video and associated trigger-point .jpg files that are stored in the Videos subdirectory.
 
 > Requires to be confirmed with a second press.
 
@@ -89,7 +89,7 @@ start on boot up.
 
 Typical use is expected to be in a headless remote mode.
 
-Before deploying it will be useful to examine the code and, if necessary, make some changes to match the Pi and camera being used,  e.g.
+Before deploying it will be useful to examine the code and, if necessary, make changes to match the Pi and camera being used,  e.g.
 
 >  To select the aspect ratio of the sensor being used.
 
@@ -126,7 +126,7 @@ As an example the screenshot below is taken from a Pi5, accessing Ropey-Cam runn
 
 ![Test screenshot](latency_screenshot.png)
 
-In the upper left is an ssh session running htop on the remote Pi3 during an active recording. Lots of spare CPU and memory capacity.
+In the upper left is an ssh session running htop on the remote Pi3 during an active recording, indicating useful spare CPU and memory capacity.
 
 In the lower left the Thunar file manager is accessing the Videos subdirectory on the remote Pi3 via the network samba share. (Using a separate file manager from the inbuilt pcmanfm allows the thumbnail icon sizes to be increased without affecting the desktop).
 
@@ -138,9 +138,9 @@ The difference between the stopwatch time in the foreground, and the background 
 
 Much of the code is taken from the examples, discussions and responses to issues as found in the [Picamera2 Github repository](https://github.com/raspberrypi/picamera2) .
  
- The method of button control was inspired by [this article](https://www.e-tinkers.com/2018/04/how-to-control-raspberry-pi-gpio-via-http-web-server/) .
+The method of button control was inspired by [this article](https://www.e-tinkers.com/2018/04/how-to-control-raspberry-pi-gpio-via-http-web-server/) .
  
- And [signag](https://github.com/signag/raspi-cam-srv) offered coding suggestions against an early version of the code. 
+And [signag](https://github.com/signag/raspi-cam-srv) offered coding suggestions against an early version of the code. 
  
  [Lite Installation](docs/lite.md)
  
