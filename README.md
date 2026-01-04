@@ -15,7 +15,7 @@ On a Raspberry Pi running a desktop RPiOS and with camera attached, open a termi
 	sudo apt install python3-opencv -y
 	git clone https://github.com/sandyol55/Ropey-Cam
 	cd Ropey-Cam
-	./RopeyCamBuffer.py
+	./Ropey-Cam.py
 
 Then from another computer on the same network browse to raspberry.pi.ip:8000, typically an address like 192.168.0.120:8000.
 

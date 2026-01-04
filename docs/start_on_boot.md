@@ -15,7 +15,7 @@ After=network.target
 [Service]
 Type=simple
 User=username
-ExecStart=/usr/bin/python3 /home/username/Ropey-Cam/RopeyCamBuffer.py
+ExecStart=/usr/bin/python3 /home/username/Ropey-Cam/Ropey-Cam.py
 Restart=always
 RestartSec=10
 

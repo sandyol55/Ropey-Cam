@@ -21,7 +21,7 @@ Although a full RPiOS is recommended for all Pi variants, if using a Pi Zero2W o
 
 `cd Ropey-Cam`
 
-`./RopeyCamBuffer.py`
+`./Ropey-Cam.py`
 
 Then continue as per the main page documentation to point a browser at the Raspberry Pi. (Wait about 10-15 seconds to allow all the libraries to load and for the camera to be initialised).
 
@@ -31,15 +31,15 @@ Note that closing the terminal window will signal the program to hang up at whic
 
 To allow the terminal to be closed, while leaving the server running use :-
 
-`nohup ./RopeyCamBuffer.py`
+`nohup ./Ropey-Cam.py`
 
 Or, to avoid the console and error messages filling up the nohup output log :-
 
-`nohup ./RopeyCamBuffer.py >/dev/null 2>&1`
+`nohup ./Ropey-Cam.py >/dev/null 2>&1`
 
 
 ## Resources
 
-A screenshot from a Pi400 accessing RopeyCamBuffer.py running on a Pi3A+  shows usefully lower memory usage compared to the 'Desktop' version running on a Pi3B shown in the main page.
+A screenshot from a Pi400 accessing Ropey-Cam.py running on a Pi3A+  shows usefully lower memory usage compared to the 'Desktop' version running on a Pi3B shown in the main page.
 
 ![Lite Installation screenshot from a Pi400](lite_screenshot.png "Screenshot")
