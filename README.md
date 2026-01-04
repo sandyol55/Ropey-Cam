@@ -37,7 +37,7 @@ Similarly if motion in the frame does not trigger recording press the Dec_Trigge
 
 Once calibrated for the motion/noise environment, test that deliberate motion triggers recording.
 
-The REC stamp will remain for ~ 6 seconds after motion has dropped below the trigger level, while the full video file - containing ~3 seconds pre-trigger, X seconds of motion and ~3 seconds of post-motion video -is saved to disk.
+The REC stamp will remain for ~ 6 seconds after motion has dropped below the trigger level, while the full video file - containing ~3 seconds pre-trigger, X seconds of motion and ~3 seconds of post-motion video - is saved to disk.
 
 This recording is happening in the background while the live stream continues uninterrupted. 
 
