@@ -2,9 +2,7 @@
 
 # Run this script, then point a web browser at http:<this-ip-address>:8000, or to test on the local machine use 127.0.0.1:8000
 # While running, any motion above 'trigger_level' will start a timestamped video capture to 
-# a local Videos subfolder, along with a jpeg monochrome still of the trigger moment.
-# Adjust trigger_level as required, using the Inc and Dec_Trigger Level buttons, to set the sensitivity of the frame to frame difference trigger.
-# Other buttons on home page can :Start/Stop Manual Recording: :DELETE Video Files: :RESET: :SHUTDOWN: :REBOOT the system: or :Toggle motion Detection:  
+# a local Videos subfolder, along with a jpeg snapshot of the trigger moment
 
 import os
 import sys
@@ -23,6 +21,7 @@ from picamera2.encoders import H264Encoder
 from picamera2.outputs import PyavOutput,CircularOutput2
 from datetime import datetime
 from PIL import Image
+from io import BytesIO
 from libcamera import Transform
 
 # Set HTML string 'variables'
@@ -31,7 +30,7 @@ message_1 = "Live streaming with Motion Detection ACTIVE"
 motion_button = "Motion_Detect_OFF"
 
 # Set Video sizes. Firstly width and height of the hi-res (recorded video stream) then the lo-res stream (used for motion detection and streaming)
-# Keep WIDTH an integer multiple of 128 for maximum compatibility across platforms. Uncomment as necessary to set up the required aspect ratio and resolution.
+# Keep WIDTHs an integer multiple of 128 for maximum compatibility across platforms. Uncomment as necessary to set up the required aspect ratio and resolution.
 # The sets suggested have been selected to cover most combinations of Pi models and Cameras
 
 # This set is a compromise that can be used in most situations. 
@@ -49,7 +48,8 @@ STREAM_WIDTH,STREAM_HEIGHT = 512, 304   # Recommended lo-res (streaming) resolut
 # STREAM_WIDTH,STREAM_HEIGHT = 768, 432   # Advanced lo-res (streaming) resolution for 16:9 sensor modes
 
 # Initialise variables and Booleans
-FRAMES_PER_SECOND = 15 # Adjust as required to set Video Framerate. eg 10 or 15fps may help allow lower power Pi models to perform without frame dropping.
+FRAMES_PER_SECOND = 15 # Adjust as required to set Video Framerate. Conservatively 10 or 15fps for pre Pi3 models, 25 or 30fps for more capable models.
+buffer_seconds = 3 # Length of time inside circular buffer
 trigger_level = 10 # Sensitivity of frame to frame change for 'motion' detection 
 reset_trigger = trigger_level # Copy of value used to reset trigger_level after disabling motion detection.
 video_count = 0
@@ -64,8 +64,8 @@ should_shutdown = False
 is_recording = False
 
 # Set text colour, position and size for timestamp, (Yellow text, near top of screen, in a large font)
-colour = (220, 220, 80)
-origin = (40, 50)
+colour = (240, 240, 50)
+origin = (16, 50)
 font = FONT_HERSHEY_SIMPLEX
 scale = 2
 thickness = 2
@@ -90,9 +90,9 @@ os.environ["LIBCAMERA_LOG_LEVELS"] = "4"  # reduce libcamera messsages
 
 
 def apply_timestamp(request):
-    str_ms = str(time_ns()//1000000-3)
-    ms = str_ms[-3:]
-    timestamp = strftime("%Y-%m-%d %X.")+ms
+    clock_time = datetime.now()
+    milliseconds = clock_time.microsecond // 1000
+    timestamp = f"{clock_time:%d/%m/%Y  %H:%M:%S}.{milliseconds:03d}"
     with MappedArray(request, "main") as m:
         putText(m.array, timestamp, origin, font, scale, colour, thickness)
 
@@ -105,6 +105,15 @@ def capturebuffer():
         with cb_condition:
             cb_frame = buf2
             cb_condition.notify_all()
+
+
+def yuv420_jpeg(yuvframe, height, width, quality):
+                jpeg = encode_jpeg_yuv_planes(
+                yuvframe[:height],
+                yuvframe.reshape(height * 3, width // 2)[height * 2 : height * 2 + height // 2],
+                yuvframe.reshape(height * 3, width // 2)[height * 2 + height // 2 :],
+                quality=quality)
+                return jpeg
 
 
 # Superimpose data on YUV420 frames then encode them as jpegs for sending to browser stream.
@@ -124,12 +133,8 @@ def mjpeg_encode():
                 yuv[STREAM_HEIGHT : STREAM_HEIGHT + 7, STREAM_WIDTH // 2 - 40 : STREAM_WIDTH // 2] = u
                 yuv[STREAM_HEIGHT + STREAM_HEIGHT // 4 : STREAM_HEIGHT + STREAM_HEIGHT // 4 + 7, STREAM_WIDTH // 2 - 40 : STREAM_WIDTH // 2] = v
 
-            # Use simplejpeg instead of opencv to go from yuv to jpeg
-            buf = encode_jpeg_yuv_planes(
-                yuv[:STREAM_HEIGHT],
-                yuv.reshape(STREAM_HEIGHT * 3, STREAM_WIDTH // 2)[STREAM_HEIGHT * 2 : STREAM_HEIGHT * 2 + STREAM_HEIGHT // 2],
-                yuv.reshape(STREAM_HEIGHT * 3, STREAM_WIDTH // 2)[STREAM_HEIGHT * 2 + STREAM_HEIGHT // 2 :],
-                quality = 80) 
+            # Convert frame from yuv to jpeg 
+            buf = yuv420_jpeg(yuv, STREAM_HEIGHT, STREAM_WIDTH, 60)
             with mjpeg_condition:
                 mjpeg_frame = buf
                 mjpeg_condition.notify_all()
@@ -159,7 +164,7 @@ class StreamingHandler(BaseHTTPRequestHandler):
         elif post_data == 'DELETE_ALL_FILES':
             message_1 = "Press DELETE_ALL_FILES again to delete all files - or RESET to cancel"
             if should_delete_files:
-                os.system("rm Videos/avi*")
+                os.system("rm Videos/*.mp4 Videos/*.jpg")
                 video_count = 0
                 should_delete_files = False
                 message_1 = "Video files deleted and video counter reset"
@@ -323,8 +328,8 @@ def motion():
                 while True:
                     with cb_condition:
                         cb_condition.wait()
-                        current_frame = copy(cb_frame)
-                    current_frame = current_frame[:STREAM_HEIGHT, :]
+                        current_frame = cb_frame
+                    
                     if previous_frame is not None:
                         mse = mean(square(subtract(current_frame, previous_frame)))
                         if mse > trigger_level or set_manual_recording: 
@@ -332,10 +337,11 @@ def motion():
                                 video_count += 1
                                 now = datetime.now()
                                 date_time = now.strftime("%Y%m%d_%H%M%S")
-                                file_title = "Videos/avi_{:05d}_{}".format(video_count, date_time)
+                                file_title = "Videos/{:05d}_{}".format(video_count, date_time)
                                 full_file_title = file_title + ".mp4"
-                                icon = Image.fromarray(current_frame)
-                                icon.save(file_title + "_im.jpg")
+                                snapshot = yuv420_jpeg(current_frame, STREAM_HEIGHT, STREAM_WIDTH, 85)
+                                icon = Image.open(BytesIO(snapshot))
+                                icon.save(file_title + ".jpg")
 
                                 circ.open_output(PyavOutput(full_file_title))
 
@@ -355,7 +361,7 @@ def motion():
                                 print()
                                 print("Waiting for next trigger or button initiated command.")
 
-                                # If running low on disk space delete oldest file after writing most recent one
+                                # If running low on disk space delete oldest file pair after writing most recent one
                                 total, used, _ = disk_usage("Videos")
                                 used_space = used / total
                                 if used_space > max_disk_usage:
@@ -390,15 +396,15 @@ picam2.configure(picam2.create_video_configuration(sensor = {"output_size":mode[
                                                    controls = {'FrameRate' : FRAMES_PER_SECOND},
                                                    transform = Transform(hflip=False, vflip=False),
                                                      main = {"size": (VIDEO_WIDTH,VIDEO_HEIGHT),'format':"BGR888"},
-                                                       lores = {"size": (STREAM_WIDTH, STREAM_HEIGHT),'format':"YUV420"}, buffer_count=10))
+                                                       lores = {"size": (STREAM_WIDTH, STREAM_HEIGHT),'format':"YUV420"}, buffer_count = 10))
 
 
-encoder = H264Encoder(3300000, repeat=True, iperiod=45)
+encoder = H264Encoder(3300000, repeat = True, iperiod = FRAMES_PER_SECOND * buffer_seconds // 2)
 picam2.pre_callback = apply_timestamp
 
 # Circular Buffer enabled and started
-circ = CircularOutput2(buffer_duration_ms=3000)
-encoder.output=[circ]
+circ = CircularOutput2(buffer_duration_ms = buffer_seconds * 1000)
+encoder.output = [circ]
 picam2.start_recording(encoder, circ)
 sleep(1)
 
@@ -407,20 +413,20 @@ cb_abort = False
 cb_frame = None
 buf2 = None
 cb_condition = Condition()
-cb_thread = Thread(target=capturebuffer, daemon=True)
+cb_thread = Thread(target=capturebuffer, daemon = True)
 cb_thread.start()
 
 mjpeg_abort = False
 mjpeg_frame = None
 mjpeg_condition = Condition()
-mjpeg_thread = Thread(target=mjpeg_encode, daemon=False)
+mjpeg_thread = Thread(target=mjpeg_encode, daemon = False)
 mjpeg_thread.start()
 
-stream_thread = Thread(target=stream, daemon=True)
+stream_thread = Thread(target=stream, daemon = True)
 stream_thread.start()
 
 motion_abort = False
-motion_thread = Thread(target=motion, daemon=True)
+motion_thread = Thread(target=motion, daemon = True)
 motion_thread.start()
 
 # Join an 'infinite' thread to keep main thread alive 'til ready to exit by 'aborting' mjpeg thread
