@@ -13,7 +13,7 @@ from shutil import disk_usage
 from numpy import mean, square,subtract, copy
 from simplejpeg import encode_jpeg_yuv_planes
 from cv2 import putText, FONT_HERSHEY_SIMPLEX
-from time import strftime, sleep, time, time_ns
+from time import strftime, sleep, time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from threading import Condition, Thread
 from picamera2 import Picamera2, MappedArray
@@ -48,7 +48,7 @@ STREAM_WIDTH,STREAM_HEIGHT = 512, 304   # Recommended lo-res (streaming) resolut
 # STREAM_WIDTH,STREAM_HEIGHT = 768, 432   # Advanced lo-res (streaming) resolution for 16:9 sensor modes
 
 # Initialise variables and Booleans
-FRAMES_PER_SECOND = 15 # Adjust as required to set Video Framerate. Conservatively 10 or 15fps for pre Pi3 models, 25 or 30fps for more capable models.
+FRAMES_PER_SECOND = 20 # Adjust as required to set Video Framerate. Conservatively 10 or 15fps for pre Pi3 models, 25 or 30fps for more capable models.
 buffer_seconds = 3 # Length of time inside circular buffer
 trigger_level = 10 # Sensitivity of frame to frame change for 'motion' detection 
 reset_trigger = trigger_level # Copy of value used to reset trigger_level after disabling motion detection.
@@ -78,6 +78,15 @@ y_mse_stamp = 255
 # Pick a Camera Mode. The Value of 1 here would for example select a full frame 2x2 binned 10-bit 16:9 output if using an HQ or V3 camera.
 # A value of 1 with V2 camera will select a full frame 2x2 binned 10bit 4:3 output.
 cam_mode_select = 1 # Pick a mode for your sensor that will generate the required native format, field of view and framerate.
+
+# Assign some colour styles and initialise variables for HTML buttons
+active="background-color:orange"
+passive="background-color:lightblue"
+motion_button_colour = active
+record_button_colour = passive
+exit_button_colour = passive
+reboot_button_colour = passive
+shutdown_button_colour = passive
 
 # Find the directory we're in and then check for, and if necessary, create a Videos subdirectory.
 full_path = os.path.realpath(__file__)
@@ -140,13 +149,23 @@ def mjpeg_encode():
                 mjpeg_condition.notify_all()
  
  
-class StreamingHandler(BaseHTTPRequestHandler):
+def cleanup():
+    set_manual_recording = False
+    trigger_level= 999 
+    print("Closing any active recordings and waiting to", post_data)
+    sleep(8)
+    
+
+class StreamingHandler(BaseHTTPRequestHandler):    
     def do_POST(self):
         global message_1, stop_start, was_button_pressed, motion_button,\
                trigger_level,reset_trigger, should_delete_files,\
                should_shutdown, should_exit, should_reboot, mjpeg_abort,\
-               video_count, set_manual_recording
-
+               video_count, set_manual_recording, post_data,\
+               motion_button_colour, record_button_colour,\
+               exit_button_colour, reboot_button_colour,\
+               shutdown_button_colour
+                
         content_length = int(self.headers['Content-Length'])  # Get the size of data
         post_data = self.rfile.read(content_length).decode("utf-8")  # Get the data
         post_data = post_data.split("=")[1]  # Only keep the value
@@ -154,11 +173,13 @@ class StreamingHandler(BaseHTTPRequestHandler):
         if post_data == 'Manual_Recording_START':
             message_1 = "Live streaming with Manual Recording ACTIVE"
             stop_start = "Manual_Recording_STOP"
+            record_button_colour = active
             set_manual_recording = True
 
         elif post_data == 'Manual_Recording_STOP':
             message_1 = "Live Streaming with Manual Recording Stopped. (Short delay to close recording .. then wait for next action)."
             stop_start = "Manual_Recording_START"
+            record_button_colour = passive
             set_manual_recording = False
 
         elif post_data == 'DELETE_ALL_FILES':
@@ -177,47 +198,46 @@ class StreamingHandler(BaseHTTPRequestHandler):
             should_delete_files = False
             should_exit = False
             should_shutdown = False
+            exit_button_colour = passive
+            reboot_button_colour = passive
+            shutdown_button_colour = passive
 
         elif post_data == 'REBOOT':
             message_1 = " Press REBOOT again if you're sure - or RESET to cancel. (Short delay while files are saved)."
             if should_reboot:
-                set_manual_recording = False
-                trigger_level= 999 
-                print("Closing any active recordings and rebooting shortly")
-                sleep(8)
+                cleanup()
                 os.system("sudo reboot now")
             should_reboot = True
+            reboot_button_colour = active
 
         elif post_data == 'SHUTDOWN':
             message_1 = "Press SHUTDOWN again if you're sure - or RESET to cancel. (Short delay while files are saved)."
             if should_shutdown:
-                set_manual_recording = False
-                trigger_level = 999 
-                print("Closing any active recordings and shutting down shortly")
-                sleep(8)
+                cleanup()
                 os.system("sudo shutdown now")
             should_shutdown = True
+            shutdown_button_colour = active
 
         elif post_data == 'EXIT':
             message_1 = " Press EXIT again if you're sure - or RESET to cancel. (Short delay while files are saved)."
             if should_exit:
-                set_manual_recording = False
-                trigger_level = 999 
-                print("Exiting shortly")
-                sleep(8)
+                cleanup()
                 mjpeg_abort = True
                 picam2.close()
                 sys.exit(0)
             should_exit = True
+            exit_button_colour = active
 
         elif post_data == 'Motion_Detect_ON':
             message_1 = "Live streaming with Motion Detection ACTIVE"
             motion_button = "Motion_Detect_OFF"
+            motion_button_colour = active
             trigger_level = reset_trigger
 
         elif post_data == 'Motion_Detect_OFF':
             message_1 = "Live streaming with Motion Detection INACTIVE"
             motion_button = "Motion_Detect_ON"
+            motion_button_colour = passive
             trigger_level = 999
 
         elif post_data == 'Inc_TriggerLevel':
@@ -256,24 +276,25 @@ class StreamingHandler(BaseHTTPRequestHandler):
                     <img src="stream.mjpg" width="{ph1}" height="{ph2}" />
                     <p> {ph3}  </p>
                     <form action="/" method="POST">
-                      <input type="submit" name="submit" value="{ph4}">
+                      <input type="submit" name="submit" value="{ph4}"style = "{ph10}">
                       <input type="submit" name="submit" value="Inc_TriggerLevel">
                       <input type="submit" name="submit" value="Dec_TriggerLevel">
-                      <input type="submit" name="submit" value="{ph5}">
+                      <input type="submit" name="submit" value="{ph5}" style = "{ph11}">
                     </form>
                     <p> </p>
                     <form action="/" method="POST">
-                      <input type="submit" name="submit" value="DELETE_ALL_FILES" style="background-color:lightpink;">
-                      <input type="submit" name="submit" value="EXIT">
-                      <input type="submit" name="submit" value="RESET" style=background-color:lightgreen>
-                      <input type="submit" name="submit" value="REBOOT">
-                      <input type="submit" name="submit" value="SHUTDOWN">
+                      <input type="submit" name="submit" value="DELETE_ALL_FILES" style = "background-color:lightpink;">
+                      <input type="submit" name="submit" value="EXIT" style = "{ph12}">
+                      <input type="submit" name="submit" value="RESET" style = "background-color:lightgreen;">
+                      <input type="submit" name="submit" value="REBOOT" style ="{ph13}">
+                      <input type="submit" name="submit" value="SHUTDOWN" style= "{ph14}">
                     </form>
                   </center>
                 </body>
               </html>
-            """.format(ph1 = STREAM_WIDTH, ph2 = STREAM_HEIGHT, ph3 = message_1, ph4 = motion_button, ph5 = stop_start)
-
+            """.format(ph1 = STREAM_WIDTH, ph2 = STREAM_HEIGHT, ph3 = message_1, ph4 = motion_button, ph5 = stop_start,
+                       ph10 = motion_button_colour, ph11 = record_button_colour, ph12 = exit_button_colour,
+                       ph13 = reboot_button_colour, ph14 = shutdown_button_colour )
         if self.path == '/':
             self.send_response(301)
             self.send_header('Location', '/index.html')

@@ -42,7 +42,7 @@ The REC stamp will remain for ~ 6 seconds after motion has dropped below the tri
 This recording is happening in the background while the live stream continues uninterrupted. 
 
 ### Control buttons
-Brief description of the effect of the control buttons.
+Brief description of the effect of the control buttons, some of which may be familiar to Rpi_Cam_Web_Interface users ;-)
 
 **Motion_Detect_Off**
 >  will disable the motion detection, but retain the live stream.
@@ -105,7 +105,7 @@ Edit as required.
 
 The default configuration is currently :-
 
-16:9 output with a 1280x720 main stream resolution and 512x384 for the browser stream, and a framerate of 25fps.
+16:9 output with a 1280x720 main stream resolution and 512x384 for the browser stream, and a framerate of 20 fps.
 
 The sensor default mode is set to 1, which will typically give a full frame (16:9) 2x2 binned mode on HQ and V3 cameras, or a full frame (4:3) 2x2 binned mode on V1 or V2 cameras. 
 
