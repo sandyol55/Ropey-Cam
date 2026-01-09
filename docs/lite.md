@@ -40,6 +40,8 @@ Or, to avoid the console and error messages filling up the nohup output log :-
 
 ## Resources
 
-A screenshot from a Pi400 accessing Ropey-Cam.py running on a Pi3A+  shows usefully lower memory usage compared to the 'Desktop' version running on a Pi3B shown in the main page.
+A screenshot from a Pi5 browser accessing Ropey-Cam.py running on  Pi3A+,  with two ssh sessions attached, one with htop running and a second running Ropey-Cam, along with a samba share connected  - shows markedly lower memory usage than the 'Desktop' version running on a Pi3B that was shown in the main page.
+
+The latency in this case was ~200ms but was much more consistent than the Desktop version. This consistency *may* be due to the lower overall CPU usage under the Lite OS?
 
 ![Lite Installation screenshot from a Pi400](lite_screenshot.png "Screenshot")

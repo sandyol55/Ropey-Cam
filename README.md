@@ -132,7 +132,7 @@ In the lower left the Thunar file manager is accessing the Videos subdirectory o
 
 And on the right is the browser, showing an image from the camera while it is being pointed at the browsing computer's screen - with a stopwatch in the foreground.
 
-The difference between the stopwatch time in the foreground, and the background - earlier - image of the stopwatch that has been captured, processed, passed through the network to the browser and displayed, is a measure of the system latency.  The latency of 170ms is in the mid-range of the values seen in this particular configuration, which were typically in the 150 to 190 ms range. 
+The difference between the stopwatch time in the foreground, and the background - earlier - image of the stopwatch that has been captured, processed, passed through the network to the browser and displayed, is a measure of the system latency.  The latency of 150ms is in the low range of the values seen in this particular configuration, which were typically in the 150 to 190 ms range. 
 
 ### Acknowledgements 
 
