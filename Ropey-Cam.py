@@ -49,9 +49,10 @@ STREAM_WIDTH,STREAM_HEIGHT = 512, 304   # Recommended lo-res (streaming) resolut
 
 # Initialise variables and Booleans
 FRAMES_PER_SECOND = 20 # Adjust as required to set Video Framerate. Conservatively 10 or 15fps for pre Pi3 models, 25 or 30fps for more capable models.
-buffer_seconds = 3 # Length of time inside circular buffer
+buffer_seconds = 5 # Length of time inside circular buffer
 trigger_level = 10 # Sensitivity of frame to frame change for 'motion' detection 
 reset_trigger = trigger_level # Copy of value used to reset trigger_level after disabling motion detection.
+after_frames = 5 # Number of consecutive frames with motion before recording is triggered
 video_count = 0
 mse = 0
 max_disk_usage = 0.8
@@ -76,7 +77,6 @@ y, u, v = 0, 110, 250
 y_mse_stamp = 255
 
 # Pick a Camera Mode. The Value of 1 here would for example select a full frame 2x2 binned 10-bit 16:9 output if using an HQ or V3 camera.
-# A value of 1 with V2 camera will select a full frame 2x2 binned 10bit 4:3 output.
 cam_mode_select = 1 # Pick a mode for your sensor that will generate the required native format, field of view and framerate.
 
 # Assign some colour styles and initialise variables for HTML buttons
@@ -345,6 +345,7 @@ def motion():
             cb_condition.wait()
             previous_frame = None
             is_recording = False
+            motion_frames = 0
             if not was_button_pressed: # Ignore motion check if button was recently pressed
                 while True:
                     with cb_condition:
@@ -353,7 +354,8 @@ def motion():
                     
                     if previous_frame is not None:
                         mse = mean(square(subtract(current_frame, previous_frame)))
-                        if mse > trigger_level or set_manual_recording: 
+                        motion_frames = motion_frames + 1 if mse > trigger_level else 0
+                        if motion_frames > after_frames or set_manual_recording:
                             if not is_recording:
                                 video_count += 1
                                 now = datetime.now()
@@ -396,6 +398,7 @@ def motion():
                     was_button_pressed = False
 
 def stream():
+    global trigger_level, set_manual_recording, mjpeg_abort
     try:
         address = ('', 8000)
         server = StreamingServer(address, StreamingHandler)

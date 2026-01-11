@@ -31,6 +31,8 @@ The browser should present a home page as below
 
 The figures in the top left of the streaming video frame indicate the measure of (mse) frame to frame change in the video, against the currently set trigger level. If motion (or noise) in the video is present, in excess of the trigger level, then video  recording will be activated as indicated by the red REC stamp in the top right.
 
+To reduce the likelihood of triggering by transient events, or noise, a configurable number of consecutive frames exceeding the mse level are required, before recording as activated, the default is currently set to 5.
+
 If recording is activated when no apparent motion is present in the video, pressing the Inc_TriggerLevel button repeatedly will increase the frame to frame change threshold  at which recording is triggered.
 
 Similarly if motion in the frame does not trigger recording press the Dec_TriggerLevel button repeatedly until recording is triggered. 
@@ -148,3 +150,4 @@ And [signag](https://github.com/signag/raspi-cam-srv) offered coding suggestions
  
  [Start on reboot](docs/start_on_boot.md)
  
+ [General Notes](docs/general_notes.md)
