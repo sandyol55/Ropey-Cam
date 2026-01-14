@@ -17,9 +17,14 @@ On a Raspberry Pi running a desktop RPiOS and with camera attached, open a termi
 	cd Ropey-Cam
 	./Ropey-Cam.py
 
-Then from another computer on the same network browse to raspberry.pi.ip:8000, typically an address like 192.168.0.120:8000.
+#### Alternatively
+*As the only file required is the python script Ropey-Cam.py. Instead of cloning the whole repository, simply open the file and copy or download it and install it on a Ropey-Cam directory on the target local machine. Then proceed to run the file as above.*
 
-(Or, on the Raspberry Pi computer, open a local browser and request 127.0.0.1:8000  -  or even do both - to get simultaneous streams to multiple browsers.)
+To access the camera stream and controls :-
+
+From another computer on the same network browse to raspberry.pi.ip:8000, typically an address like 192.168.0.120:8000.
+
+Or, on the Raspberry Pi computer, open a local browser and request 127.0.0.1:8000  -  or even do both - to get simultaneous streams to multiple browsers.
 
 The browser should present a home page as below
 
