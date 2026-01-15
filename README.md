@@ -36,7 +36,7 @@ The browser should present a home page as below
 
 The figures in the top left of the streaming video frame indicate the measure of (mse) frame to frame change in the video, against the currently set trigger level. If motion (or noise) in the video is present, in excess of the trigger level, then video  recording will be activated as indicated by the red REC stamp in the top right.
 
-To reduce the likelihood of triggering by transient events, or noise, a configurable number of consecutive frames exceeding the mse level are required, before recording is activated, the default is currently set to 5.
+To reduce the likelihood of triggering by transient events, or noise, a configurable number of consecutive frames exceeding the mse level are required before recording is activated. The default is currently set to 5.
 
 If recording is activated when no apparent motion is present in the video, pressing the Inc_TriggerLevel button repeatedly will increase the frame to frame change threshold  at which recording is triggered.
 
