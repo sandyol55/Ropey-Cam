@@ -112,7 +112,7 @@ Edit as required.
 
 The default configuration is currently :-
 
-16:9 output with a 1280x720 main stream resolution and 512x384 for the browser stream, and a framerate of 20 fps.
+16:9 output with a 1280x720 main stream resolution and 640x360 for the browser stream, and a framerate of 20 fps.
 
 The sensor default mode is set to 1, which will typically give a full frame (16:9) 2x2 binned mode on HQ and V3 cameras, or a full frame (4:3) 2x2 binned mode on V1 or V2 cameras. 
 

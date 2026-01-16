@@ -38,7 +38,7 @@ motion_button = "Motion_Detect_OFF"
 # STREAM_WIDTH,STREAM_HEIGHT = 512, 384 # Recommended lo-res (streaming) resolution for 4:3 sensor modes
 
 VIDEO_WIDTH,VIDEO_HEIGHT = 1280, 720  # Recommended hi-res (recorded) resolution for 16:9 sensor modes
-STREAM_WIDTH,STREAM_HEIGHT = 512, 304   # Recommended lo-res (streaming) resolution for 16:9 sensor modes
+STREAM_WIDTH,STREAM_HEIGHT = 640, 360   # Recommended lo-res (streaming) resolution for 16:9 sensor modes
 
 # These higher resolution sets are best suited to Pi3 and above
 # VIDEO_WIDTH,VIDEO_HEIGHT = 1672, 1254 # Advanced hi-res (recorded) resolution for 4:3 sensor modes
