@@ -17,7 +17,7 @@ from time import strftime, sleep, time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from threading import Condition, Thread
 from picamera2 import Picamera2, MappedArray
-from picamera2.encoders import H264Encoder
+from picamera2.encoders import H264Encoder, Quality
 from picamera2.outputs import PyavOutput,CircularOutput2
 from datetime import datetime
 from PIL import Image
@@ -52,7 +52,7 @@ FRAMES_PER_SECOND = 20 # Adjust as required to set Video Framerate. Conservative
 buffer_seconds, post_roll = 3, 3 # Length of time (seconds) inside circular buffer and post motion recording time
 trigger_level = 10 # Sensitivity of frame to frame change for 'motion' detection
 reset_trigger = trigger_level # Copy of value used to reset trigger_level after disabling motion detection.
-after_frames = 5 # Number of consecutive frames with motion before recording is triggered
+after_frames, motion_frames = 5, 0 # Number of consecutive frames with motion to trigger recording (threshold and counter)
 video_count = 0
 mse = 0
 max_disk_usage = 0.8
@@ -371,7 +371,7 @@ def control_storage():
 
 
 def motion():
-    global  was_button_pressed, is_recording, mse
+    global  was_button_pressed, is_recording, mse, motion_frames
     while True:
         previous_frame = None     
         if not was_button_pressed: # Ignore motion check if button was recently pressed
@@ -433,13 +433,13 @@ picam2.configure(picam2.create_video_configuration(sensor = {"output_size":mode[
                                                      main = {"size" : (VIDEO_WIDTH, VIDEO_HEIGHT),'format' : "BGR888"},
                                                        lores = {"size" : (STREAM_WIDTH, STREAM_HEIGHT),'format' : "YUV420"}, buffer_count = 10))
 
-encoder = H264Encoder(3300000, repeat = True, iperiod = FRAMES_PER_SECOND * buffer_seconds // 2)
+encoder = H264Encoder(repeat = True, iperiod = FRAMES_PER_SECOND * buffer_seconds // 2)
 picam2.pre_callback = apply_timestamp
 
 # Circular Buffer enabled and started
 circ = CircularOutput2(buffer_duration_ms = buffer_seconds * 1000)
 encoder.output = [circ]
-picam2.start_recording(encoder, circ)
+picam2.start_recording(encoder, circ, quality = Quality.HIGH)
 sleep(1)
 
 # Start up the various 'infinite' threads.
