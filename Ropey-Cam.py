@@ -41,18 +41,18 @@ VIDEO_WIDTH,VIDEO_HEIGHT = 1280, 720  # Recommended hi-res (recorded) resolution
 STREAM_WIDTH,STREAM_HEIGHT = 640, 360   # Recommended lo-res (streaming) resolution for 16:9 sensor modes
 
 # These higher resolution sets are best suited to Pi3 and above
-# VIDEO_WIDTH,VIDEO_HEIGHT = 1672, 1254 # Advanced hi-res (recorded) resolution for 4:3 sensor modes
-# STREAM_WIDTH,STREAM_HEIGHT = 768, 576 # Advanced lo-res (streaming) resolution for 4:3 sensor modes
+# VIDEO_WIDTH,VIDEO_HEIGHT = 1600, 1200  # Advanced hi-res (recorded) resolution for 4:3 sensor modes
+# STREAM_WIDTH,STREAM_HEIGHT = 768, 576  # Advanced lo-res (streaming) resolution for 4:3 sensor modes
 
 # VIDEO_WIDTH,VIDEO_HEIGHT = 1920, 1080  # Advanced hi-res (recorded) resolution for 16:9 sensor modes
-# STREAM_WIDTH,STREAM_HEIGHT = 768, 432   # Advanced lo-res (streaming) resolution for 16:9 sensor modes
+# STREAM_WIDTH,STREAM_HEIGHT = 768, 432  # Advanced lo-res (streaming) resolution for 16:9 sensor modes
 
 # Initialise variables and Booleans
-FRAMES_PER_SECOND = 20 # Adjust as required to set Video Framerate. Conservatively 10 or 15fps for pre Pi3 models, 25 or 30fps for more capable models.
-buffer_seconds, post_roll = 3, 3 # Length of time (seconds) inside circular buffer and post motion recording time
-trigger_level = 10 # Sensitivity of frame to frame change for 'motion' detection
-reset_trigger = trigger_level # Copy of value used to reset trigger_level after disabling motion detection.
-after_frames, motion_frames = 5, 0 # Number of consecutive frames with motion to trigger recording (threshold and counter)
+FRAMES_PER_SECOND = 20  # Adjust as required to set Video Framerate. Conservatively 10 or 15fps for pre Pi3 models, 25 or 30fps for more capable models.
+buffer_seconds, post_roll = 3, 3  # Length of time (seconds) inside circular buffer and post motion recording time
+trigger_level = 10  # Sensitivity of frame to frame change for 'motion' detection
+reset_trigger = trigger_level  # Copy of value used to reset trigger_level after disabling motion detection.
+after_frames, motion_frames = 5, 0  # Number of consecutive frames with motion to trigger recording (threshold and counter)
 video_count = 0
 mse = 0
 max_disk_usage = 0.8
@@ -77,7 +77,7 @@ y, u, v = 0, 110, 250
 y_mse_stamp = 255
 
 # Pick a Camera Mode. The Value of 1 here would for example select a full frame 2x2 binned 10-bit 16:9 output if using an HQ or V3 camera.
-cam_mode_select = 1 # Pick a mode for your sensor that will generate the required native format, field of view and framerate.
+cam_mode_select = 1  # Pick a mode for your sensor that will generate the required native format, field of view and framerate.
 
 # Assign some colour styles and initialise variables for HTML buttons
 active="background-color:orange"
@@ -190,6 +190,7 @@ class StreamingHandler(BaseHTTPRequestHandler):
                 reset_trigger -= 1
 
         print("Control button pressed was {}".format(post_data))
+        print()
         was_button_pressed = True
         self._redirect('/index.html')  # Redirect back to the home url
 
@@ -198,6 +199,9 @@ class StreamingHandler(BaseHTTPRequestHandler):
         self.send_header('Content-type', 'text/html')
         self.send_header('Location', path)
         self.end_headers()
+    
+    def log_message(self, format, *args):
+        return  # This effectively suppresses the log output
 
     def do_GET(self):
         PAGE = """\
@@ -263,9 +267,8 @@ class StreamingHandler(BaseHTTPRequestHandler):
                     self.wfile.write(frame)
                     self.wfile.write(b'\r\n')
             except Exception as e:
-                logging.warning(
-                    'Removed streaming client %s: %s',
-                    self.client_address, str(e))
+                pass
+
         else:
             self.send_error(404)
             self.end_headers()
@@ -301,11 +304,11 @@ def cleanup():
     set_manual_recording = False
     trigger_level= 999
     print("Closing any active recordings and waiting to", post_data)
+    print()
     sleep(8)
 
 
-# Superimpose data on YUV420 frames then encode them as jpegs for sending to browser stream.
-def mjpeg_encode():
+def mjpeg_encode():  # Superimpose data on YUV420 frames then encode them as jpegs.
     global mjpeg_frame
     while not mjpeg_abort:
         with cb_condition:
@@ -329,7 +332,7 @@ def mjpeg_encode():
 
 
 def open_files(frame):
-    global video_count, file_title
+    global video_count, file_title, video_file_title
     current_frame = frame
     video_count += 1
 
@@ -346,17 +349,17 @@ def open_files(frame):
 
     # Open output video file
     circ.open_output(PyavOutput(video_file_title))
-    print()
     print(f'New recording starting after "trigger value" of  {mse:.1f}')
+    print()
 
 
 def close_files(start_time, close_time):
     circ.close_output()
-    print()
-    print("Closing and saving file",file_title, end=", ")
+    print("Closing and saving file",video_file_title, end=", ")
     print(f'which holds approx { (close_time - start_time):.0f} seconds worth of video')
     print()
     print("Waiting for next trigger or button initiated command.")
+    print()
 
 
 def control_storage():
@@ -399,6 +402,7 @@ def motion():
 
                 previous_frame = current_frame
                 was_button_pressed = False
+
 
 def stream():
     global trigger_level, set_manual_recording, mjpeg_abort
@@ -463,4 +467,3 @@ motion_thread.start()
 
 # Join an 'infinite' thread to keep main thread alive 'til ready to exit by 'aborting' mjpeg thread
 mjpeg_thread.join()
-
