@@ -4,7 +4,7 @@
 
 As a long term user of the comprehensive [RPi_Cam_Web_Interface](https://github.com/silvanmelchior/RPi_Cam_Web_Interface) with various RPi cameras (V1,V2 and HQ), it was frustrating not being able to use third party cameras or any of the later RPi camera modules with RCWI. Unable to find any libcamera/Picamera2 based alternatives, and as a learning exercise, work started on a basic -*very basic*- alternative.
 
-For those looking for more comprehensive features, there is available the very fully featured [raspi-cam-srv](https://github.com/signag/raspi-cam-srv).
+For those looking for more comprehensive features, the very fully featured [raspi-cam-srv](https://github.com/signag/raspi-cam-srv) is recommended.
 
 "Ropey-Cam" reflects its construction methodology: it is assembled from code snippets and examples from the Picamera2 repository, with minimal Python complexity, and uses a multi-threaded architecture to handle concurrent operations. In it's basic form, when installed on a RPi with the standard desktop OS, the only additional dependency is OpenCV.
 
@@ -12,17 +12,24 @@ For those looking for more comprehensive features, there is available the very f
  
 On a Raspberry Pi running a desktop RPiOS and with camera attached, open a terminal and enter :-
 
+`hostname -I`
+
+and take a note of the Raspberry Pi's IP address.
+
+Then :-
+
+
 	sudo apt install python3-opencv -y
 	git clone https://github.com/sandyol55/Ropey-Cam
 	cd Ropey-Cam
 	./Ropey-Cam.py
 
 #### Alternatively
-*As the only file required is the python script Ropey-Cam.py. Instead of cloning the whole repository, simply open the file and copy or download it and install it on a Ropey-Cam directory on the target local machine. Then proceed to run the file as above.*
+*The only file required is the python script Ropey-Cam.py. So instead of cloning the whole repository, simply open the file and copy or download it and install it on a Ropey-Cam directory on the target local machine. Then proceed to run the file as above.*
 
 To access the camera stream and controls :-
 
-From another computer on the same network browse to raspberry.pi.ip:8000, typically an address like 192.168.0.120:8000.
+From another device on the same network browse to xxx.xxx.x.xxx:8000, where xxx.xxx.x.xxx is the IP address of the Ropey-Cam Raspberry PI.
 
 Or, on the Raspberry Pi computer, open a local browser and request 127.0.0.1:8000  -  or even do both - to get simultaneous streams to multiple browsers.
 
@@ -44,7 +51,7 @@ Similarly if motion in the frame does not trigger recording press the Dec_Trigge
 
 Once calibrated for the motion/noise environment, test that deliberate motion triggers recording.
 
-The REC stamp will remain for ~ 6 seconds after motion has dropped below the trigger level, while the full video file - containing ~3 seconds pre-trigger, X seconds of motion and ~3 seconds of post-motion video - is saved to disk.
+The REC stamp will remain for ~ 6 seconds after motion has dropped below the trigger level, while the full video file - containing ~3 seconds pre-trigger, N seconds of motion and ~3 seconds of post-motion video - is saved to disk.
 
 This recording is happening in the background while the live stream continues uninterrupted. 
 
@@ -88,7 +95,7 @@ start on boot up.
 **SHUTDOWN**
 > will shutdown the Raspberry Pi.
 
-> Like EXIT and REBOOT there is a built in delay to allow any in-progress recordings to be stored cleanly.
+> Like EXIT and REBOOT there is a built in delay of ~ 8 seconds, to allow any in-progress recordings to be stored cleanly.
 
 ---
 
@@ -106,7 +113,7 @@ Before deploying it will be useful to examine the code and, if necessary, make c
 
 > And to select the mode in which to operate the sensor.
 
-These are controlled by documented commented lines within the code at ~lines 33-49, line 52 and line 80. 
+These are controlled by documented commented lines within the code at lines 33-49, line 51 and line 80. 
 
 Edit as required.
 
