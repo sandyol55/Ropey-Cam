@@ -306,6 +306,7 @@ def yuv420_jpeg(yuvframe, height, width, quality):
 
 
 def cleanup():
+    global trigger_level
     set_manual_recording = False
     trigger_level= 999
     print("Closing any active recordings and waiting to", post_data)
