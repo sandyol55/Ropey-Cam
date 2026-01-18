@@ -80,14 +80,16 @@ y_mse_stamp = 255
 cam_mode_select = 1  # Pick a mode for your sensor that will generate the required native format, field of view and framerate.
 
 # Assign some colour styles and initialise variables for HTML buttons
-active="background-color:orange"
-passive="background-color:lightblue"
+active = "background-color:orange"
+passive = "background-color:lightblue"
+delete_passive = "background-color:lightpink"
+delete_active = "background-color:red"
 motion_button_colour = active
 record_button_colour = passive
 exit_button_colour = passive
 reboot_button_colour = passive
 shutdown_button_colour = passive
-
+delete_button_colour = delete_passive
 
 class StreamingServer(socketserver.ThreadingMixIn, HTTPServer):
     allow_reuse_address = True
@@ -102,7 +104,7 @@ class StreamingHandler(BaseHTTPRequestHandler):
                video_count, set_manual_recording, post_data,\
                motion_button_colour, record_button_colour,\
                exit_button_colour, reboot_button_colour,\
-               shutdown_button_colour
+               shutdown_button_colour, delete_button_colour
 
         content_length = int(self.headers['Content-Length'])  # Get the size of data
         post_data = self.rfile.read(content_length).decode("utf-8")  # Get the data
@@ -126,9 +128,11 @@ class StreamingHandler(BaseHTTPRequestHandler):
                 os.system("rm Videos/*.mp4 Videos/*.jpg")
                 video_count = 0
                 should_delete_files = False
+                delete_button_colour = delete_passive
                 message_1 = "Video files deleted and video counter reset"
             else:
                 should_delete_files = True
+                delete_button_colour = delete_active
 
         elif post_data =='RESET':
             message_1 = "Reset EXIT, DELETE, REBOOT and SHUTDOWN to initial default conditions i.e. Cancel the first press"
@@ -139,6 +143,7 @@ class StreamingHandler(BaseHTTPRequestHandler):
             exit_button_colour = passive
             reboot_button_colour = passive
             shutdown_button_colour = passive
+            delete_button_colour = delete_passive
 
         elif post_data == 'REBOOT':
             message_1 = " Press REBOOT again if you're sure - or RESET to cancel. (Short delay while files are saved)."
@@ -225,7 +230,7 @@ class StreamingHandler(BaseHTTPRequestHandler):
                     </form>
                     <p> </p>
                     <form action="/" method="POST">
-                      <input type="submit" name="submit" value="DELETE_ALL_FILES" style = "background-color:lightpink;">
+                      <input type="submit" name="submit" value="DELETE_ALL_FILES" style = "{ph15}">
                       <input type="submit" name="submit" value="EXIT" style = "{ph12}">
                       <input type="submit" name="submit" value="RESET" style = "background-color:lightgreen;">
                       <input type="submit" name="submit" value="REBOOT" style ="{ph13}">
@@ -236,7 +241,7 @@ class StreamingHandler(BaseHTTPRequestHandler):
               </html>
             """.format(ph1 = STREAM_WIDTH, ph2 = STREAM_HEIGHT, ph3 = message_1, ph4 = motion_button, ph5 = stop_start,
                        ph10 = motion_button_colour, ph11 = record_button_colour, ph12 = exit_button_colour,
-                       ph13 = reboot_button_colour, ph14 = shutdown_button_colour )
+                       ph13 = reboot_button_colour, ph14 = shutdown_button_colour , ph15 = delete_button_colour)
         if self.path == '/':
             self.send_response(301)
             self.send_header('Location', '/index.html')

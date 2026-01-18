@@ -22,6 +22,7 @@ RestartSec=10
 [Install]
 WantedBy=multi-user.target
 ```
+Ctrl + X, Y followed by Enter to exit and save.
 
 Then enable the service
 

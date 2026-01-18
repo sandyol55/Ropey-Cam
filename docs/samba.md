@@ -48,7 +48,7 @@ public = no
 valid users = username
 guest ok = no
 ```
- Then ctrl +X, Y followed by Enter to save
+ Then Ctrl + X, Y followed by Enter to save
  
  Next set up a Samba password for *your* username :-
  
