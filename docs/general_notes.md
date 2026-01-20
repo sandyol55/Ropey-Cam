@@ -18,3 +18,6 @@ To help avoid the storage disk/card being filled with video files the max_disk_u
 
 ### Timestamps
 The recorded video files have a date and time stamp embedded in the frame data. The time includes a millisecond record and is useful for checking for dropped frames.  By single-stepping through the recorded files the millisecond counter should advance by ~ 1000 / FRAMES_PER_SECOND each frame. A jump between frames of more than this would indicated dropped frames in the encoded video file.  Playing back the files using mpv media player, rather than the default vlc, can be useful with it's more flexible forward/backward single stepping and easier access to the video properties information.  (Press I for comprehensive on-screen properties data.)
+
+### Motion Detection
+The previous versions have used a simple mse frame to frame change detection algorithm, as used in the Picamera2 repository motion example on which Ropey-Cam was based. A more complex algorithm based on [this article](https://medium.com/@itberrios6/introduction-to-motion-detection-part-1-e031b0bb9bb2) is now used and is much more effective at detecting motion (Frame Difference), particularly when the part of the scene in motion is only a small fraction of the overall field of view. 

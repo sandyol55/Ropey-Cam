@@ -41,7 +41,7 @@ The browser should present a home page as below
 
 ### Basic operation.
 
-The figures in the top left of the streaming video frame indicate the measure of (mse) frame to frame change in the video, against the currently set trigger level. If motion (or noise) in the video is present, in excess of the trigger level, then video  recording will be activated as indicated by the red REC stamp in the top right.
+The figures in the top left of the streaming video frame indicate the measure of frame to frame change in the video, against the currently set trigger level. If motion (or noise) in the video is present, in excess of the trigger level, then video  recording will be activated as indicated by the red REC stamp in the top right.
 
 To reduce the likelihood of triggering by transient events, or noise, a configurable number of consecutive frames exceeding the mse level are required before recording is activated. The default is currently set to 5.
 
@@ -155,6 +155,9 @@ Much of the code is taken from the examples, discussions and responses to issues
 The method of button control was inspired by [this article](https://www.e-tinkers.com/2018/04/how-to-control-raspberry-pi-gpio-via-http-web-server/) .
  
 And [signag](https://github.com/signag/raspi-cam-srv) offered coding suggestions against an early version of the code. 
+
+The previous simple mse frame to frame change algorithm has been replaced by a more effective 'Frame Difference' algorithm based on [this article](https://medium.com/@itberrios6/introduction-to-motion-detection-part-1-e031b0bb9bb2)
+
  
  [Lite Installation](docs/lite.md)
  
