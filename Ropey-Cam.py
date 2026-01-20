@@ -1,18 +1,18 @@
 #!/usr/bin/python3
 
-# Run this script, then point a web browser at http:<this-ip-address>:8000, or to test on the local machine use 127.0.0.1:8000
-# While running, any motion above 'trigger_level' will start a timestamped video capture to 
-# a local Videos subfolder, along with a jpeg snapshot of the trigger moment
-
+"""Run this script, then point a web browser at http:<this-ip-address>:8000, or to test on the local machine use 127.0.0.1:8000.
+   While running, low resolution frames are being continuously streamed to the browser. Any motion above a trigger_level
+   will start a high resolution timestamped video capture to a local Videos subfolder, along with a jpeg snapshot of the trigger moment.
+"""
 import os
 import sys
 import logging
 import socketserver
 from glob import glob
 from shutil import disk_usage
-from numpy import mean, square,subtract, copy
+from numpy import copy, array, uint8, argsort, all
 from simplejpeg import encode_jpeg_yuv_planes
-from cv2 import putText, FONT_HERSHEY_SIMPLEX
+import cv2
 from time import strftime, sleep, time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from threading import Condition, Thread
@@ -50,11 +50,11 @@ STREAM_WIDTH,STREAM_HEIGHT = 640, 360   # Recommended lo-res (streaming) resolut
 # Initialise variables and Booleans
 FRAMES_PER_SECOND = 20  # Adjust as required to set Video Framerate. Conservatively 10 or 15fps for pre Pi3 models, 25 or 30fps for more capable models.
 buffer_seconds, post_roll = 3, 3  # Length of time (seconds) inside circular buffer and post motion recording time
-trigger_level = 10  # Sensitivity of frame to frame change for 'motion' detection
+trigger_level, inf_trigger_level = 200, 999999  # Sensitivity of frame to frame change for motion detection
 reset_trigger = trigger_level  # Copy of value used to reset trigger_level after disabling motion detection.
-after_frames, motion_frames = 5, 0  # Number of consecutive frames with motion to trigger recording (threshold and counter)
+after_frames, motion_frames = 3, 0  # Number of consecutive frames with motion to trigger recording (threshold and counter)
+total_motion = 0
 video_count = 0
-mse = 0
 max_disk_usage = 0.8
 was_button_pressed = False
 should_reboot = False
@@ -63,12 +63,13 @@ should_delete_files = False
 set_manual_recording = False
 should_shutdown = False
 is_recording = False
+kernel = array((9,9), dtype=uint8)
 
-# Set text colour, position and size for timestamp, (Yellow text, near top of screen, in a large font)
+# Set text colour, position and size for timestamp, (Yellow text, near top of screen, in a standard font)
 colour = (240, 240, 50)
-origin = (16, 50)
-font = FONT_HERSHEY_SIMPLEX
-scale = 2
+origin = (8, 24)
+font = cv2.FONT_HERSHEY_SIMPLEX
+scale = 1
 thickness = 2
 
 # Set Y and u,v colour for a red block REC stamp in streaming frames
@@ -76,7 +77,6 @@ y, u, v = 0, 110, 250
 # Set Y for combined MSE / Trigger level stamp in streaming frames. White stamp so no need for u,v values.
 y_mse_stamp = 255
 
-# Pick a Camera Mode. The Value of 1 here would for example select a full frame 2x2 binned 10-bit 16:9 output if using an HQ or V3 camera.
 cam_mode_select = 1  # Pick a mode for your sensor that will generate the required native format, field of view and framerate.
 
 # Assign some colour styles and initialise variables for HTML buttons
@@ -165,9 +165,9 @@ class StreamingHandler(BaseHTTPRequestHandler):
             message_1 = " Press EXIT again if you're sure - or RESET to cancel. (Short delay while files are saved)."
             if should_exit:
                 cleanup()
-                mjpeg_abort = True
                 picam2.close()
-                sys.exit(0)
+                mjpeg_abort = True
+                sys.exit("Exit button pressed")
             should_exit = True
             exit_button_colour = active
 
@@ -181,12 +181,13 @@ class StreamingHandler(BaseHTTPRequestHandler):
             message_1 = "Live streaming with Motion Detection INACTIVE"
             motion_button = "Motion_Detect_ON"
             motion_button_colour = passive
-            trigger_level = 999
+            trigger_level = inf_trigger_level
 
         elif post_data == 'Inc_TriggerLevel':
             message_1 = "Decrease motion sensitivity by increasing trigger level"
-            trigger_level += 1
-            reset_trigger += 1
+            if trigger_level < inf_trigger_level:
+                trigger_level += 1
+                reset_trigger += 1
 
         elif post_data == 'Dec_TriggerLevel':
             message_1 = "Increase motion sensitivity by decreasing trigger level"
@@ -282,9 +283,9 @@ class StreamingHandler(BaseHTTPRequestHandler):
 def apply_timestamp(request):
     clock_time = datetime.now()
     milliseconds = clock_time.microsecond // 1000
-    timestamp = f"{clock_time:%d/%m/%Y  %H:%M:%S}.{milliseconds:03d}"
+    timestamp = f"Ropey-Cam     {clock_time:%d/%m/%Y      %H:%M:%S}.{milliseconds:03d}     {total_motion:05d}"
     with MappedArray(request, "main") as m:
-        putText(m.array, timestamp, origin, font, scale, colour, thickness)
+        cv2.putText(m.array, timestamp, origin, font, scale, colour, thickness)
 
 
 def capturebuffer():
@@ -308,7 +309,7 @@ def yuv420_jpeg(yuvframe, height, width, quality):
 def cleanup():
     global trigger_level, set_manual_recording
     set_manual_recording = False
-    trigger_level= 999
+    trigger_level= inf_trigger_level
     print("Closing any active recordings and waiting to", post_data)
     print()
     sleep(8)
@@ -320,11 +321,12 @@ def mjpeg_encode():  # Superimpose data on YUV420 frames then encode them as jpe
         with cb_condition:
             cb_condition.wait()
             yuv = copy(cb_frame)
-            # embed result of frame to frame mse calculation, versus current trigger level in top left of frame.
-            putText(yuv, str(int(10 * mse) / 10)+"/"+str(trigger_level), (12, 22), font, scale // 2, (y_mse_stamp, 0, 0), thickness)
+            # embed result of frame to frame difference calculation, versus current trigger level, in top left of frame.
+            motion_stamp = f"{total_motion:06d}/{trigger_level:06d}" 
+            cv2.putText(yuv, motion_stamp, (12, 22), font, scale , (y_mse_stamp, 0, 0), thickness // 2)
             if is_recording:
                 # put a red REC stamp in top right of frame
-                putText(yuv,"REC",(STREAM_WIDTH - 72, 22), font, 1, (y, 0, 0), 2)
+                cv2.putText(yuv,"REC",(STREAM_WIDTH - 72, 22), font, 1, (y, 0, 0), 2)
                 yuv[STREAM_HEIGHT : STREAM_HEIGHT + 7, STREAM_WIDTH - 40:] = u
                 yuv[STREAM_HEIGHT + STREAM_HEIGHT // 4 : STREAM_HEIGHT + STREAM_HEIGHT // 4 + 7, STREAM_WIDTH - 40 :] = v
                 yuv[STREAM_HEIGHT : STREAM_HEIGHT + 7, STREAM_WIDTH // 2 - 40 : STREAM_WIDTH // 2] = u
@@ -355,7 +357,7 @@ def open_files(frame):
 
     # Open output video file
     circ.open_output(PyavOutput(video_file_title))
-    print(f'New recording starting after "trigger value" of  {mse:.1f}')
+    print(f'New recording starting after "trigger value" of  {total_motion:.0f}')
     print()
 
 
@@ -377,22 +379,83 @@ def control_storage():
         oldest_video_file=sorted(glob("Videos/*.mp4"), key = os.path.getctime)[0]
         os.remove(oldest_snapshot)
         os.remove(oldest_video_file)
+        
+
+def get_mask(frame1, frame2, kernel=array((9,9), dtype=uint8)):
+    """ Obtains image mask
+        Inputs: 
+            frame1 - Grayscale frame at time t
+            frame2 - Grayscale frame at time t + 1
+            kernel - (NxN) array for Morphological Operations
+        Outputs: 
+            mask - Thresholded mask for moving pixels
+        """
+
+    frame_diff = cv2.subtract(frame2, frame1)
+
+    # blur the frame difference
+    frame_diff = cv2.medianBlur(frame_diff, 3)
+    
+    mask = cv2.adaptiveThreshold(frame_diff, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
+            cv2.THRESH_BINARY_INV, 11, 3)
+
+    mask = cv2.medianBlur(mask, 3)
+
+    # morphological operations
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=1)
+    
+    return mask
+
+def get_contour_detections(mask, thresh=20):
+    """ Obtains initial proposed detections from contours discovered on the mask. 
+        Scores are taken as the bbox area, larger is higher.
+        Inputs:
+            mask - thresholded image mask
+            thresh - threshold for contour size
+        Outputs:
+            detections - array of proposed detection bounding boxes and scores [[x1,y1,x2,y2,s]]
+        """
+    # get mask contours
+    contours, _ = cv2.findContours(mask, 
+                                   cv2.RETR_EXTERNAL,
+                                   cv2.CHAIN_APPROX_TC89_L1)
+    detections = []
+    for cnt in contours:
+        x,y,w,h = cv2.boundingRect(cnt)
+        area = w*h
+        if area > thresh: 
+            detections.append([x,y,x+w,y+h, area])
+
+    return array(detections)
 
 
 def motion():
-    global  was_button_pressed, is_recording, mse, motion_frames
+    global  was_button_pressed, is_recording, total_motion
     while True:
         previous_frame = None     
         if not was_button_pressed: # Ignore motion check if button was recently pressed
             while True:
                 with cb_condition:
                     cb_condition.wait()
-                    current_frame = cb_frame
+                    current_frame = copy(cb_frame)
+                    grey_frame=current_frame[:STREAM_HEIGHT, :]
 
                 if previous_frame is not None:
-                    mse = mean(square(subtract(current_frame, previous_frame)))
-                    motion_frames = motion_frames + 1 if mse > trigger_level else 0
-                    if motion_frames > after_frames or set_manual_recording:
+                    total_motion = 0                 
+                    
+                    # get image mask for moving pixels
+                    mask = get_mask(previous_grey_frame, grey_frame, kernel)
+                    
+                    # get initially proposed detections from contours
+                    detections = get_contour_detections(mask, thresh = 20)
+                                        
+                    # if there are any detections use the areas to give 'motion scores' 
+                    if detections.size > 0:
+                        scores = detections[:, -1]
+                        total_motion = scores.sum()
+                        
+                    motion_frames = motion_frames + 1 if total_motion > trigger_level else 0
+                    if motion_frames >= after_frames or set_manual_recording:
                         if not is_recording:
                             is_recording = True
                             start_time = time()
@@ -407,7 +470,8 @@ def motion():
                             control_storage()
 
                 previous_frame = current_frame
-                was_button_pressed = False
+                previous_grey_frame=grey_frame
+                was_button_pressed = False            
 
 
 def stream():
