@@ -152,7 +152,7 @@ The difference between the stopwatch time in the foreground, and the background 
 
 Much of the code is taken from the examples, discussions and responses to issues as found in the [Picamera2 Github repository](https://github.com/raspberrypi/picamera2) .
  
-The method of button control was inspired by [this article](https://www.e-tinkers.com/2018/04/how-to-control-raspberry-pi-gpio-via-http-web-server/) .
+The method of button control was inspired by [this article](https://github.com/e-tinkers/simple_httpserver/blob/master/README.md) .
  
 And [signag](https://github.com/signag/raspi-cam-srv) offered coding suggestions against an early version of the code. 
 
