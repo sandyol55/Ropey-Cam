@@ -1,7 +1,7 @@
 ## General notes to help modify the application for specific uses.
 
 ### Video sizes and FrameRates
-There are a set of platform specific recommended video resolutions in commented sectons of the code Lines 32 - 48. These are conservative and users may wish to experiment with pushing the resolutions and framerates to suit  their requirements. It is strongly advised to limit the width values of the STREAM_WIDTH to integer multiples of 128 to maintain compatibilty across all Pi platforms. Similarily the VIDEO_WIDTH should be restricted to integer multiples of 32. 
+There are a set of platform specific recommended video resolutions in commented sectons of the code Lines 67-87. These are conservative and users may wish to experiment with pushing the resolutions and framerates to suit  their requirements. It is strongly advised to limit the width values of the STREAM_WIDTH to integer multiples of 128 to maintain compatibilty across all Pi platforms. Similarily the VIDEO_WIDTH should be restricted to integer multiples of 32. 
 
 ### Length of Circular Buffer and Post-roll 
 The current default of buffer_seconds is set to 3 seconds, and while longer values are possible, longer values will increase the memory requirements. The post-roll is also set to 3 seconds and could be increased to capture more of the post-motion scene.
