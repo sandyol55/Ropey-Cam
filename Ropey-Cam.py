@@ -19,6 +19,8 @@ To view the web page, point a browser at the Pi's IP address:8000
 
 Or, from a local browser on the Pi, use 127.0.0.1:8000. (Or both.)
 """
+
+import cv2
 import os
 import sys
 import logging
@@ -27,7 +29,6 @@ from glob import glob
 from shutil import disk_usage
 from numpy import copy, array, uint8, argsort, all
 from simplejpeg import encode_jpeg_yuv_planes
-import cv2
 from time import strftime, sleep, time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from threading import Condition, Thread
@@ -45,16 +46,16 @@ message_1 = "Live streaming with Motion Detection ACTIVE"
 motion_button = "Motion_Detect_OFF"
 
 # Assign some colour styles and initialise variables for HTML buttons
-active = "background-color:orange"
-passive = "background-color:lightblue"
-delete_passive = "background-color:lightpink"
-delete_active = "background-color:red"
-motion_button_colour = active
-record_button_colour = passive
-exit_button_colour = passive
-reboot_button_colour = passive
-shutdown_button_colour = passive
-delete_button_colour = delete_passive
+ACTIVE = "background-color:orange"
+PASSIVE = "background-color:lightblue"
+DELETE_PASSIVE = "background-color:lightpink"
+DELETE_ACTIVE = "background-color:red"
+motion_button_colour = ACTIVE
+record_button_colour = PASSIVE
+exit_button_colour = PASSIVE
+reboot_button_colour = PASSIVE
+shutdown_button_colour = PASSIVE
+delete_button_colour = DELETE_PASSIVE
 
 # The following lines contain a set of recommended Video sizes.
 # Firstly width and height of the hi-res (recorded video stream) then
@@ -101,7 +102,6 @@ reset_trigger = trigger_level  # Copy of value used to reset
 AFTER_FRAMES =  5 # Number of consecutive frames with motion to trigger
 
 total_motion = 0
-# video_count = 0
 
 MAX_DISK_USAGE = 0.8  # Limit before file deletion is activated
 
@@ -174,7 +174,7 @@ class StreamingHandler(BaseHTTPRequestHandler):
         if post_data == 'Manual_Recording_START':
             message_1 = "Live streaming with Manual Recording ACTIVE"
             stop_start = "Manual_Recording_STOP"
-            record_button_colour = active
+            record_button_colour = ACTIVE
             set_manual_recording = True
 
         elif post_data == 'Manual_Recording_STOP':
@@ -182,7 +182,7 @@ class StreamingHandler(BaseHTTPRequestHandler):
              (Short delay to close recording ..
               then wait for next action)."""
             stop_start = "Manual_Recording_START"
-            record_button_colour = passive
+            record_button_colour = PASSIVE
             set_manual_recording = False
 
         elif post_data == 'DELETE_ALL_FILES':
@@ -192,11 +192,11 @@ class StreamingHandler(BaseHTTPRequestHandler):
                 os.system("rm Videos/*.mp4 Videos/*.jpg")
                 video_count = 0
                 should_delete_files = False
-                delete_button_colour = delete_passive
+                delete_button_colour = DELETE_PASSIVE
                 message_1 = "Video files deleted and video counter reset"
             else:
                 should_delete_files = True
-                delete_button_colour = delete_active
+                delete_button_colour = DELETE_ACTIVE
 
         elif post_data =='RESET':
             message_1 = """Reset EXIT, DELETE, REBOOT and SHUTDOWN to
@@ -205,10 +205,10 @@ class StreamingHandler(BaseHTTPRequestHandler):
             should_delete_files = False
             should_exit = False
             should_shutdown = False
-            exit_button_colour = passive
-            reboot_button_colour = passive
-            shutdown_button_colour = passive
-            delete_button_colour = delete_passive
+            exit_button_colour = PASSIVE
+            reboot_button_colour = PASSIVE
+            shutdown_button_colour = PASSIVE
+            delete_button_colour = DELETE_PASSIVE
 
         elif post_data == 'REBOOT':
             message_1 = """ Press REBOOT again if you're sure - or RESET
@@ -217,7 +217,7 @@ class StreamingHandler(BaseHTTPRequestHandler):
                 cleanup()
                 os.system("sudo reboot now")
             should_reboot = True
-            reboot_button_colour = active
+            reboot_button_colour = ACTIVE
 
         elif post_data == 'SHUTDOWN':
             message_1 = """Press SHUTDOWN again if you're sure - or 
@@ -226,7 +226,7 @@ class StreamingHandler(BaseHTTPRequestHandler):
                 cleanup()
                 os.system("sudo shutdown now")
             should_shutdown = True
-            shutdown_button_colour = active
+            shutdown_button_colour = ACTIVE
 
         elif post_data == 'EXIT':
             message_1 = """ Press EXIT again if you're sure - or RESET
@@ -237,18 +237,18 @@ class StreamingHandler(BaseHTTPRequestHandler):
                 picam2.close()
                 sys.exit(0)
             should_exit = True
-            exit_button_colour = active
+            exit_button_colour = ACTIVE
 
         elif post_data == 'Motion_Detect_ON':
             message_1 = "Live streaming with Motion Detection ACTIVE"
             motion_button = "Motion_Detect_OFF"
-            motion_button_colour = active
+            motion_button_colour = ACTIVE
             trigger_level = reset_trigger
 
         elif post_data == 'Motion_Detect_OFF':
             message_1 = "Live streaming with Motion Detection INACTIVE"
             motion_button = "Motion_Detect_ON"
-            motion_button_colour = passive
+            motion_button_colour = PASSIVE
             trigger_level = INF_TRIGGER_LEVEL
 
         elif post_data == 'Inc_TriggerLevel':
@@ -293,18 +293,18 @@ class StreamingHandler(BaseHTTPRequestHandler):
                     <img src="stream.mjpg" width="{ph1}" height="{ph2}" />
                     <p> {ph3}  </p>
                     <form action="/" method="POST">
-                      <input type="submit" name="submit" value="{ph4}"style = "{ph10}">
+                      <input type="submit" name="submit" value="{ph4}"style = "{ph6}">
                       <input type="submit" name="submit" value="Inc_TriggerLevel">
                       <input type="submit" name="submit" value="Dec_TriggerLevel">
-                      <input type="submit" name="submit" value="{ph5}" style = "{ph11}">
+                      <input type="submit" name="submit" value="{ph5}" style = "{ph7}">
                     </form>
                     <p> </p>
                     <form action="/" method="POST">
-                      <input type="submit" name="submit" value="DELETE_ALL_FILES" style = "{ph15}">
-                      <input type="submit" name="submit" value="EXIT" style = "{ph12}">
+                      <input type="submit" name="submit" value="DELETE_ALL_FILES" style = "{ph11}">
+                      <input type="submit" name="submit" value="EXIT" style = "{ph8}">
                       <input type="submit" name="submit" value="RESET" style = "background-color:lightgreen;">
-                      <input type="submit" name="submit" value="REBOOT" style ="{ph13}">
-                      <input type="submit" name="submit" value="SHUTDOWN" style= "{ph14}">
+                      <input type="submit" name="submit" value="REBOOT" style ="{ph9}">
+                      <input type="submit" name="submit" value="SHUTDOWN" style= "{ph10}">
                     </form>
                   </center>
                 </body>
@@ -314,12 +314,12 @@ class StreamingHandler(BaseHTTPRequestHandler):
                        ph3 = message_1,
                        ph4 = motion_button,
                        ph5 = stop_start,
-                       ph10 = motion_button_colour,
-                       ph11 = record_button_colour,
-                       ph12 = exit_button_colour,
-                       ph13 = reboot_button_colour,
-                       ph14 = shutdown_button_colour,
-                       ph15 = delete_button_colour)
+                       ph6 = motion_button_colour,
+                       ph7 = record_button_colour,
+                       ph8 = exit_button_colour,
+                       ph9 = reboot_button_colour,
+                       ph10 = shutdown_button_colour,
+                       ph11 = delete_button_colour)
                        
         if self.path == '/':
             self.send_response(301)
@@ -361,8 +361,7 @@ class StreamingHandler(BaseHTTPRequestHandler):
 def apply_timestamp(request):
     clock_time = datetime.now()
     milliseconds = clock_time.microsecond // 1000
-    timestamp = f"""Ropey-Cam     {clock_time:%d/%m/%Y      %H:%M:%S}.
-    {milliseconds:03d}     {total_motion:05d}"""
+    timestamp = f"""Ropey-Cam     {clock_time:%d/%m/%Y      %H:%M:%S}.{milliseconds:03d}     {total_motion:06d}"""
     with MappedArray(request, "main") as m:
         cv2.putText(m.array, timestamp, origin, font, scale, colour, thickness)
 
