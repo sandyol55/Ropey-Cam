@@ -61,8 +61,8 @@ delete_button_colour = DELETE_PASSIVE
 # Firstly width and height of the hi-res (recorded video stream) then
 # the lo-res stream (used for motion detection and streaming).
 
-# If testing new sizes, keep VIDEO_WIDTHs an integer multiple of 128
-# and keep STREAM_WIDTHs an integer multiple of 32, for maximum
+# If testing new sizes, keep VIDEO_WIDTH a multiple of 32
+# and keep STREAM_WIDTH a multiple of 128 for maximum
 # compatibility across potential different Pi host platforms.
 
 # Uncomment as required to set up the aspect ratios and resolutions.
