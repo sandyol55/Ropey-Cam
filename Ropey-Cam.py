@@ -3,10 +3,9 @@
 """
 This script controls a single camera connected to the host Raspberry Pi.
 
-It serves a web page containing a 'live' low-resolution stream from the 
-camera along with feedback control buttons to any connected browser(s).
-
-While streaming to the browser, (or when no browser is connected),
+It serves a web page with a set of camera and application control buttons, 
+ along with an embedded live stream from the camera.
+While streaming to the browser, (and also when no browser is connected),
 it is looking for change between consecutive frames in the stream and,
 if sufficent change is detected, will initiate a high-resolution
 mp.4 recording containing a pre-motion buffer, the active motion phase
@@ -25,6 +24,7 @@ import os
 import sys
 import logging
 import socketserver
+import configparser
 from glob import glob
 from shutil import disk_usage
 from numpy import copy, array, uint8, argsort, all
@@ -57,51 +57,45 @@ reboot_button_colour = PASSIVE
 shutdown_button_colour = PASSIVE
 delete_button_colour = DELETE_PASSIVE
 
-# The following lines contain a set of recommended Video sizes.
-# Firstly width and height of the hi-res (recorded video stream) then
-# the lo-res stream (used for motion detection and streaming).
+#  Get configuration constants from .ini file
+config=configparser.ConfigParser()
+config.read('ropey.ini')
 
-# If testing new sizes, keep VIDEO_WIDTH a multiple of 32
-# and keep STREAM_WIDTH a multiple of 128 for maximum
-# compatibility across potential different Pi host platforms.
+VIDEO_WIDTH = config.getint('ropey','video_width')
+ASPECT_RATIO = config.getfloat('ropey', 'aspect_ratio')
+VIDEO_HEIGHT = int(VIDEO_WIDTH/ASPECT_RATIO)
 
-# Uncomment as required to set up the aspect ratios and resolutions.
+STREAM_WIDTH = config.getint('ropey','stream_width')
+STREAM_HEIGHT = int(STREAM_WIDTH/ASPECT_RATIO)
 
-# This set is a compromise that can be used in most situations.
-# Recommended hi-res and lo-res resolutions for 4:3 sensor modes
-# VIDEO_WIDTH,VIDEO_HEIGHT = 1024, 768 
-# STREAM_WIDTH,STREAM_HEIGHT = 512, 384 
+trigger_level = config.getint('ropey','trigger_level')
+# Frame to frame change limit for motion detection
 
-# Recommended hi-res and lo-res resolution for 16:9 sensor modes
-VIDEO_WIDTH,VIDEO_HEIGHT = 1280, 720  
-STREAM_WIDTH,STREAM_HEIGHT = 640, 360
-
-# These higher resolution sets are best suited to Pi3 and above.
-# Advanced hi-res and lo-res resolutions for 4:3 sensor modes
-# VIDEO_WIDTH,VIDEO_HEIGHT = 1600, 1200  
-# STREAM_WIDTH,STREAM_HEIGHT = 768, 576  
-
-# Advanced hi-res and lo-res resolutions for 16:9 sensor modes
-# VIDEO_WIDTH,VIDEO_HEIGHT = 1920, 1080  
-# STREAM_WIDTH,STREAM_HEIGHT = 768, 432 
-
-# Initialise constants, variables and Booleans
-
-FRAMES_PER_SECOND = 20  # Adjust as required to set Video Framerate.
-# Conservatively 15fps for pre Pi3 models, 25 or 30fps for later models.
-
-BUFFER_SECONDS = 3  # Length of time (seconds) inside circular buffer
-POST_ROLL = 3  # Post motion additional recording time (seconds)
-
-trigger_level = 200  # Frame to frame change limit for motion detection
-INF_TRIGGER_LEVEL = 999999  # Impossibly high to deactiviate detection
- 
 reset_trigger = trigger_level  # Copy of value used to reset
 # the trigger_level after disabling motion detection.
 
-AFTER_FRAMES =  5 # Number of consecutive frames with motion to trigger
+SENSOR_MODE = config.getint('ropey','sensor_mode')
+# Mode parameter that controls key sensor parameters
 
-total_motion = 0
+FRAMES_PER_SECOND = config.getint('ropey','frames_per_second')
+# Conservatively 15fps for pre Pi3 models, 25 or 30fps for later models.
+
+BUFFER_SECONDS = config.getint('ropey','buffer_seconds')
+# Length of time (seconds) inside circular buffer
+
+AFTER_FRAMES = config.getint('ropey','after_frames')
+# Number of consecutive frames with motion to trigger recording
+
+POST_ROLL = config.getint('ropey','post_roll')
+# Post motion additional recording time (seconds)
+
+INF_TRIGGER_LEVEL = 999999  # Impossibly high to deactiviate detection
+ 
+HFLIP = config.getboolean('ropey','hflip')
+VFLIP = config.getboolean('ropey','vflip')
+
+video_count = config.getint('ropey','video_count')
+total_motion = 0  # Total area of motion detected via frame differencing
 
 MAX_DISK_USAGE = 0.8  # Limit before file deletion is activated
 
@@ -131,11 +125,6 @@ Y,u,v = 0, 110, 250
 # White stamp so no need for u,v values.
 Y_STREAM_STAMP = 255
 
-# Select a mode for your sensor that will generate the required 
-# aspect ratio, field of view and framerate.
-cam_mode_select = 1  
-
-
 
 class StreamingServer(socketserver.ThreadingMixIn, HTTPServer):
     """
@@ -153,9 +142,7 @@ class StreamingServer(socketserver.ThreadingMixIn, HTTPServer):
 class StreamingHandler(BaseHTTPRequestHandler):
     """
     Handles the do_GET streaming of the dynamically configurable page
-    as found in the picamera2 mpeg_server2.py example
     and the actions to take based on the do_POST requests from the client
-    
     """
     
     def do_POST(self):
@@ -165,11 +152,26 @@ class StreamingHandler(BaseHTTPRequestHandler):
                video_count, set_manual_recording, post_data,\
                motion_button_colour, record_button_colour,\
                exit_button_colour, reboot_button_colour,\
-               shutdown_button_colour, delete_button_colour
+               shutdown_button_colour, delete_button_colour,\
+               VIDEO_WIDTH,STREAM_WIDTH,FRAMES_PER_SECOND
 
         content_length = int(self.headers['Content-Length'])  # Get data length
         post_data = self.rfile.read(content_length).decode("utf-8")  # Get the data
-        post_data = post_data.split("=")[1]  # Only keep the value
+        
+        # If multi-parameter post data is returned, split into items
+        if "&" in post_data:
+            conf_items=post_data.split("&")
+            for items in conf_items:
+                name=items.split("=")[0]
+                value = items.split("=")[1]
+                # And populate config for later saving to ini file
+                if value != '':
+                    config.set('ropey',name,value)
+                    print(name, value)
+          
+        else:
+            post_data = post_data.split("=")[1]  # Only keep the value
+          
 
         if post_data == 'Manual_Recording_START':
             message_1 = "Live streaming with Manual Recording ACTIVE"
@@ -277,7 +279,7 @@ class StreamingHandler(BaseHTTPRequestHandler):
     
     def log_message(self, format, *args):
         return  # This effectively suppresses the log output
-
+    
     def do_GET(self):
         PAGE = """\
             <!DOCTYPE html>
@@ -305,6 +307,58 @@ class StreamingHandler(BaseHTTPRequestHandler):
                       <input type="submit" name="submit" value="RESET" style = "background-color:lightgreen;">
                       <input type="submit" name="submit" value="REBOOT" style ="{ph9}">
                       <input type="submit" name="submit" value="SHUTDOWN" style= "{ph10}">
+                    </form>
+                    <p> </p>
+                    <br>
+                    <p> </p>
+                    <form action="/" method="POST">
+                      <label for "VIDEO_WIDTH">VIDEO WIDTH</label>
+                      <input type="number" id="VIDEO_WIDTH" name="VIDEO_WIDTH" min="1024" max="1920"step="32" >
+                      
+                      <label for "STREAM_WIDTH">STREAM WIDTH</label>
+                      <input type="number" id="STREAM_WIDTH" name="STREAM_WIDTH" min="512" max="1280"step="128">
+                                            
+                      <label for "ASPECT_RATIO">ASPECT RATIO</label>
+                      <input type="number" id="ASPECT_RATIO" name="ASPECT_RATIO" min="1.3330" max="1.777"step=".444">             
+                      
+                      <p></p>
+                      
+                      <label for "FRAMES_PER_SECOND">FPS</label>
+                      <input type="number" id="FRAMES_PER_SECOND" name="FRAMES_PER_SECOND" min="10" max="30"step="5" style="margin-right: 30px">
+                      
+                      <label for "SENSOR_MODE">MODE</label>
+                      <input type="number" id="SENSOR_MODE" name="SENSOR_MODE" min="0" max="14" style="margin-right: 30px">
+                      
+                      <label for "HFLIP Off"> Hflip........Off </label>
+                      <input type="radio" name="HFLIP" value = False >
+                      
+                      <label for "HFLIP On">On</label>
+                      <input type="radio" name="HFLIP" value = True style="margin-right: 30px">
+                      
+                      <label for "VFLIP Off"> Vflip........Off </label>
+                      <input type="radio" name="VFLIP" value = False ">
+                      
+                      <label for "VFLIP On">On</label>
+                      <input type="radio" name="VFLIP" value = True>
+                      
+                      <p></p>
+                      
+                      <label for "trigger_level">trigger_level</label>
+                      <input type="text" size ="5" id="trigger_level" name="trigger_level">
+                      
+                      <label for "AFTER_FRAMES">AFTER # FRAMES</label>
+                      <input type="number" id="AFTER_FRAMES" name="AFTER_FRAMES" min="0" max="30">
+                      
+                      <label for "BUFFER_SECONDS"> Buffer (Seconds) </label>
+                      <input type="number" id="BUFFER_SECONDS" name="BUFFER_SECONDS" min ="1" max="10">
+                      
+                      <label for "POST_ROLL">Post Roll</label>
+                      <input type="number" id="POST_ROLL" name = "POST_ROLL" min ="0" max="10">
+
+                      <p></p>
+                      
+                      <input type="submit" value="Submit">
+                
                     </form>
                   </center>
                 </body>
@@ -358,6 +412,12 @@ class StreamingHandler(BaseHTTPRequestHandler):
             self.end_headers()
 
 
+
+def update_ini_file():
+    with open('ropey.ini', 'w') as configfile:
+        config.write(configfile)
+        
+        
 def apply_timestamp(request):
     clock_time = datetime.now()
     milliseconds = clock_time.microsecond // 1000
@@ -385,10 +445,12 @@ def yuv420_jpeg(yuvframe, height, width, quality):
 
 
 def cleanup():
-    global trigger_level, set_manual_recording
+    global trigger_level, set_manual_recording,video_count
     set_manual_recording = False
     trigger_level = INF_TRIGGER_LEVEL
-    print("Closing any active recordings and waiting to", post_data)
+    config.set('ropey','video_count',str(video_count))
+    update_ini_file()
+    print("Closing any active recordings, writing ropey.ini file and waiting to", post_data)
     print()
     sleep(8)
 
@@ -519,7 +581,6 @@ def motion():
     while True:
         previous_frame = None
         motion_frames = 0
-        video_count = 0
         
         # Ignore motion check if button was recently pressed     
         if not was_button_pressed:
@@ -591,15 +652,16 @@ os.environ["LIBCAMERA_LOG_LEVELS"] = "4"  # reduce libcamera messsages
 
 # Configure Camera and start it running
 picam2 = Picamera2()
-mode = picam2.sensor_modes[cam_mode_select]
-# Set hflip and vflip to True if image inversion is required
+mode = picam2.sensor_modes[SENSOR_MODE]
+
 picam2.configure(picam2.create_video_configuration(sensor = {"output_size":mode['size'],'bit_depth':mode['bit_depth']},
                                                    controls = {'FrameRate' : FRAMES_PER_SECOND},
-                                                   transform = Transform(hflip=False, vflip=False),
-                                                     main = {"size" : (VIDEO_WIDTH, VIDEO_HEIGHT),'format' : "BGR888"},
-                                                       lores = {"size" : (STREAM_WIDTH, STREAM_HEIGHT),'format' : "YUV420"}, buffer_count = 10))
+                                                   transform = Transform(hflip=HFLIP, vflip=VFLIP),
+                                                   main = {"size" : (VIDEO_WIDTH, VIDEO_HEIGHT),'format' : "BGR888"},
+                                                   lores = {"size" : (STREAM_WIDTH, STREAM_HEIGHT),'format' : "YUV420"}, buffer_count = 10))
 
 encoder = H264Encoder(repeat = True, iperiod = FRAMES_PER_SECOND * BUFFER_SECONDS // 2)
+
 picam2.pre_callback = apply_timestamp
 
 # Circular Buffer enabled and started

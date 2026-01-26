@@ -158,6 +158,13 @@ And [signag](https://github.com/signag/raspi-cam-srv) offered coding suggestions
 
 The previous simple mse frame to frame change algorithm has been replaced by a more effective 'Frame Difference' algorithm based on [this article](https://medium.com/@itberrios6/introduction-to-motion-detection-part-1-e031b0bb9bb2)
 
+### To Do
+
+Update this README, the screenshots and the General Notes, to reflect the latest additions of :-
+
+ A configuration .ini file.
+ 
+ New browser input elements which allow the main configuration features to be updated without requiring hard-coded script changes. 
  
  [Lite Installation](docs/lite.md)
  
