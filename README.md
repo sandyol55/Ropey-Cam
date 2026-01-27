@@ -25,7 +25,7 @@ Then :-
 	./Ropey-Cam.py
 
 #### Alternatively
-*There are only two files required to use Ropey-Cam, the python script Ropey-Cam.py and its configuration file ropey.ini. So instead of cloning the whole repository, simply browse to [this location](https://github.com/sandyol55/Ropey-Cam) and open those files then copy or download them and to a Ropey-Cam directory within the /home/users directory on the target local machine. Then proceed to run the file as above. If necessary make file executable with*
+*There are only two files required to use Ropey-Cam, the python script Ropey-Cam.py, and its configuration file ropey.ini. So instead of cloning the whole repository, simply browse to [this location](https://github.com/sandyol55/Ropey-Cam) and open the files, then copy or download them to a Ropey-Cam directory within the /home/users directory on the target local machine. Then proceed to run the file as above. If necessary make file executable with*
 
 ` chmod +x Ropey-Cam.py` 
 
@@ -53,7 +53,7 @@ Similarly if motion in the frame does not trigger recording press the Dec_Trigge
 
 Once calibrated for the motion/noise environment, test that deliberate motion triggers recording.
 
-The REC stamp will remain for ~ 6 seconds after motion has dropped below the trigger level, while the full video file - containing ~3 seconds pre-trigger, N seconds of motion and ~3 seconds of post-motion video - is saved to disk.
+The REC stamp will remain for ~ 6 seconds after motion has dropped below the trigger level, while the full video file - containing ~3 seconds pre-trigger, N seconds of motion and ~3 seconds of post-motion video - is saved to a Videos sub-directory that is created on first run of the script. Also saved is a jpeg snapshot of the low-resolution video frame at the trigger moment.
 
 This recording is happening in the background while the live stream continues uninterrupted. 
 
