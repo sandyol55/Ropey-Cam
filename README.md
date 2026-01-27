@@ -25,9 +25,11 @@ Then :-
 	./Ropey-Cam.py
 
 #### Alternatively
-*The only file required is the python script Ropey-Cam.py. So instead of cloning the whole repository, simply open the file and copy or download it and install it on a Ropey-Cam directory on the target local machine. Then proceed to run the file as above.*
+*There are only two files required to use Ropey-Cam, the python script Ropey-Cam.py and its configuration file ropey.ini. So instead of cloning the whole repository, simply browse to [this location](https://github.com/sandyol55/Ropey-Cam) and open those files then copy or download them and to a Ropey-Cam directory within the /home/users directory on the target local machine. Then proceed to run the file as above. If necessary make file executable with*
 
-To access the camera stream and controls :-
+` chmod +x Ropey-Cam.py` 
+
+Then to access the camera stream and controls :-
 
 From another device on the same network browse to xxx.xxx.x.xxx:8000, where xxx.xxx.x.xxx is the IP address of the Ropey-Cam Raspberry PI.
 
@@ -58,13 +60,15 @@ This recording is happening in the background while the live stream continues un
 ### Control buttons
 Brief description of the effect of the control buttons, some of which may be familiar to Rpi_Cam_Web_Interface users ;-)
 
+The button text describes the action that will be taken when the button is pressed, while the colour indicates the current state of that control active/inactive.
+
 **Motion_Detect_Off**
 >  will disable the motion detection, but retain the live stream.
 
-> will be replaced by Motion_Detect_On
+> will be replaced by Motion_Detect_On after being pressed.
 
 **Inc_ and Dec_TriggerLevel**
->as described above, modify the sensitivity to motion
+>as described above, modify the sensitivity to motion.
 
 **Manual_Recording_Start**
 > will initiate a recording irrespective of motion triggering.
@@ -95,7 +99,9 @@ start on boot up.
 **SHUTDOWN**
 > will shutdown the Raspberry Pi.
 
-> Like EXIT and REBOOT there is a built in delay of ~ 8 seconds, to allow any in-progress recordings to be stored cleanly.
+> Like EXIT and REBOOT there is a built in delay of ~ 8 seconds, to allow any in-progress recordings to be stored cleanly and for the configuration file to be updated.
+
+>All four of the system control buttons change colour to indicate a 'primed' state after the first press. 
 
 ---
 
@@ -103,25 +109,13 @@ start on boot up.
 
 Typical use is expected to be in a headless remote mode.
 
-Before deploying it will be useful to examine the code and, if necessary, make changes to match the Pi and camera being used,  e.g.
-
->  To select the aspect ratio of the sensor being used.
-
-> To select the resolution of the main video recording stream and the browser stream
-
-> To select the required framerate
-
-> And to select the mode in which to operate the sensor.
-
-These are controlled by documented commented lines within the code at lines 67-87, line 89 and line 136. 
-
-Edit as required.
+Before deploying it will be useful to adjust the configuration to suit the Pi and camera being used by tuning the video resolutions, aspect ratio and framerate. This can now be done from within the browser, with no requirement to make any changes to the script.
 
 The default configuration is currently :-
 
 16:9 output with a 1280x720 main stream resolution and 640x360 for the browser stream, and a framerate of 20 fps.
 
-The sensor default mode is set to 1, which will typically give a full frame (16:9) 2x2 binned mode on HQ and V3 cameras, or a full frame (4:3) 2x2 binned mode on V1 or V2 cameras. 
+The sensor default mode is set to 1, which will typically give a full frame (16:9) 2x2 binned mode on HQ and V3 cameras, or a full frame (4:3) 2x2 binned mode on V1 or V2 cameras. Details on the available changes are in the General Notes section at the bottom of the page.
 
 Other recommended steps before deploying are:-
 
@@ -146,25 +140,18 @@ In the lower left the Thunar file manager is accessing the Videos subdirectory o
 
 And on the right is the browser, showing an image from the camera while it is being pointed at the browsing computer's screen - with a stopwatch in the foreground.
 
-The difference between the stopwatch time in the foreground, and the background - earlier - image of the stopwatch that has been captured, processed, passed through the network to the browser and displayed, is a measure of the system latency.  The latency of 150ms is in the low range of the values seen in this particular configuration, which were typically in the 150 to 190 ms range. 
+The difference between the stopwatch time in the foreground, and the background - earlier - image of the stopwatch that has been captured, processed, passed through the network to the browser and displayed, is a measure of the system latency.  The latency of 150ms is in the low range of the values seen in this particular configuration, which were typically in the 150 to 200 ms range. 
 
 ### Acknowledgements 
 
 Much of the code is taken from the examples, discussions and responses to issues as found in the [Picamera2 Github repository](https://github.com/raspberrypi/picamera2) .
  
-The method of button control was inspired by [this article](https://github.com/e-tinkers/simple_httpserver/blob/master/README.md) .
+The method of button control was inspired by the code found in [this repository](https://github.com/e-tinkers/simple_httpserver/blob/master/README.md) .
  
 And [signag](https://github.com/signag/raspi-cam-srv) offered coding suggestions against an early version of the code. 
 
 The previous simple mse frame to frame change algorithm has been replaced by a more effective 'Frame Difference' algorithm based on [this article](https://medium.com/@itberrios6/introduction-to-motion-detection-part-1-e031b0bb9bb2)
 
-### To Do
-
-Update this README, the screenshots and the General Notes, to reflect the latest additions of :-
-
- A configuration .ini file.
- 
- New browser input elements which allow the main configuration features to be updated without requiring hard-coded script changes. 
  
  [Lite Installation](docs/lite.md)
  
