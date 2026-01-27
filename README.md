@@ -25,7 +25,7 @@ Then :-
 	./Ropey-Cam.py
 
 #### Alternatively
-*There are only two files required to use Ropey-Cam, the python script Ropey-Cam.py, and its configuration file ropey.ini. So instead of cloning the whole repository, simply browse to [this location](https://github.com/sandyol55/Ropey-Cam) and open the files, then copy or download them to a Ropey-Cam directory within the /home/users directory on the target local machine. Then proceed to run the file as above. If necessary make file executable with*
+*There are only two files required to use Ropey-Cam, the python script Ropey-Cam.py, and its configuration file ropey.ini. So instead of cloning the whole repository, simply open the files, then copy or download them to a Ropey-Cam directory within the /home/users directory on the target local machine. Then proceed to run the file as above. If necessary make file executable with*
 
 ` chmod +x Ropey-Cam.py` 
 
