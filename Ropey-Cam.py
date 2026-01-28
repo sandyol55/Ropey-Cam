@@ -57,6 +57,13 @@ reboot_button_colour = PASSIVE
 shutdown_button_colour = PASSIVE
 delete_button_colour = DELETE_PASSIVE
 
+# Ensure we're in the script directory and create Videos folder if necessary
+full_path=os.path.realpath(__file__)
+thisdir = os.path.dirname(full_path)
+os.chdir (thisdir)
+if not os.path.isdir("Videos"):
+    os.mkdir("Videos")
+    
 #  Get configuration constants from .ini file
 config=configparser.ConfigParser()
 config.read('ropey.ini')
@@ -637,18 +644,7 @@ def stream():
         picam2.close()
         mjpeg_abort = True
 
-
-# Find the directory we're in and then check for, and if necessary,
-#  create a Videos subdirectory.
-
-full_path = os.path.realpath(__file__)
-thisdir = os.path.dirname(full_path)
-os.chdir(thisdir)
-if not os.path.isdir("Videos"):
-    os.mkdir("Videos")
-
 os.environ["LIBCAMERA_LOG_LEVELS"] = "4"  # reduce libcamera messsages
-
 
 # Configure Camera and start it running
 picam2 = Picamera2()
