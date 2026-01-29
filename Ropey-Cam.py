@@ -3,18 +3,18 @@
 """
 This script controls a single camera connected to the host Raspberry Pi.
 
-It serves a web page with a set of camera and application control buttons, 
+It serves a web page with a set of camera and application control buttons,
  along with an embedded live stream from the camera.
 While streaming to the browser, (and also when no browser is connected),
 it is looking for change between consecutive frames in the stream and,
 if sufficent change is detected, will initiate a high-resolution
 mp.4 recording containing a pre-motion buffer, the active motion phase
 and a short post-motion segment.
- 
+
 The video will be stored in a Videos sub-directory, along with a .jpg
 snapshot file of the trigger moment.
-   
-To view the web page, point a browser at the Pi's IP address:8000 
+
+To view the web page, point a browser at the Pi's IP address:8000
 
 Or, from a local browser on the Pi, use 127.0.0.1:8000. (Or both.)
 """
@@ -57,52 +57,57 @@ reboot_button_colour = PASSIVE
 shutdown_button_colour = PASSIVE
 delete_button_colour = DELETE_PASSIVE
 
-# Ensure we're in the script directory and create Videos folder if necessary
+# Ensure the current working directory is the one containing the script
+# and create a Videos sub-directory, if necessary
 full_path=os.path.realpath(__file__)
 thisdir = os.path.dirname(full_path)
 os.chdir (thisdir)
 if not os.path.isdir("Videos"):
     os.mkdir("Videos")
-    
-#  Get configuration constants from .ini file
+
+# Get configuration constants from .ini file
 config=configparser.ConfigParser()
 config.read('ropey.ini')
 
+# Recording (hi-res) and streaming (lo-res) video resolutions
 VIDEO_WIDTH = config.getint('ropey','video_width')
-ASPECT_RATIO = config.getfloat('ropey', 'aspect_ratio')
-VIDEO_HEIGHT = int(VIDEO_WIDTH/ASPECT_RATIO)
-
 STREAM_WIDTH = config.getint('ropey','stream_width')
+ASPECT_RATIO = config.getfloat('ropey', 'aspect_ratio')
+
+# Calculate heights from width and aspect ratio
+VIDEO_HEIGHT = int(VIDEO_WIDTH/ASPECT_RATIO)
 STREAM_HEIGHT = int(STREAM_WIDTH/ASPECT_RATIO)
 
-trigger_level = config.getint('ropey','trigger_level')
 # Frame to frame change limit for motion detection
+trigger_level = config.getint('ropey','trigger_level')
 
-reset_trigger = trigger_level  # Copy of value used to reset
-# the trigger_level after disabling motion detection.
+# Save a copy of the trigger_level to use in re-enabling motion detection.
+reset_trigger = trigger_level
 
-SENSOR_MODE = config.getint('ropey','sensor_mode')
 # Mode parameter that controls key sensor parameters
+SENSOR_MODE = config.getint('ropey','sensor_mode')
 
-FRAMES_PER_SECOND = config.getint('ropey','frames_per_second')
 # Conservatively 15fps for pre Pi3 models, 25 or 30fps for later models.
+FRAMES_PER_SECOND = config.getint('ropey','frames_per_second')
 
-BUFFER_SECONDS = config.getint('ropey','buffer_seconds')
 # Length of time (seconds) inside circular buffer
+BUFFER_SECONDS = config.getint('ropey','buffer_seconds')
 
-AFTER_FRAMES = config.getint('ropey','after_frames')
 # Number of consecutive frames with motion to trigger recording
+AFTER_FRAMES = config.getint('ropey','after_frames')
 
+# Post-motion additional recording time (seconds)
 POST_ROLL = config.getint('ropey','post_roll')
-# Post motion additional recording time (seconds)
 
-INF_TRIGGER_LEVEL = 999999  # Impossibly high to deactiviate detection
- 
+# Transform controls
 HFLIP = config.getboolean('ropey','hflip')
 VFLIP = config.getboolean('ropey','vflip')
 
+# Video file counter, to retain consecutive file numbering after restarts
 video_count = config.getint('ropey','video_count')
-total_motion = 0  # Total area of motion detected via frame differencing
+
+# Not currently stored in config file
+INF_TRIGGER_LEVEL = 999999  # Impossibly high to deactiviate detection
 
 MAX_DISK_USAGE = 0.8  # Limit before file deletion is activated
 
@@ -115,10 +120,12 @@ set_manual_recording = False
 should_shutdown = False
 is_recording = False
 
+# Misc constants and variables
+total_motion = 0  # Total area of motion detected via frame differencing
 kernel = array((9,9), dtype=uint8)  # Used in detection function
 
 # Set text colour, position and size for timestamp in recorded files.
-# Yellow text, near top of screen, in a small font
+# Yellow text, near top left of screen, in a small font
 colour = (240, 240, 50)
 origin = (8, 24)
 font = cv2.FONT_HERSHEY_SIMPLEX
@@ -126,9 +133,9 @@ scale = 1
 thickness = 2
 
 # Set Y and u,v colour for a red block REC stamp in streaming frames
-Y,u,v = 0, 110, 250
+Y,u,v = 200, 110, 250
 
-# Set Y for change / trigger level stamp in streaming frames. 
+# Set Y for change / trigger level stamp in streaming frames.
 # White stamp so no need for u,v values.
 Y_STREAM_STAMP = 255
 
@@ -136,12 +143,12 @@ Y_STREAM_STAMP = 255
 class StreamingServer(socketserver.ThreadingMixIn, HTTPServer):
     """
     ThreadingMixIn: Creates new thread for each client connection
-    allow_reuse_address: 
+    allow_reuse_address:
     Allows immediate restart without "address already in use" errors
     daemon_threads:
     Client handler threads terminate when main thread exits
     """
-    
+
     allow_reuse_address = True
     daemon_threads = True
 
@@ -151,7 +158,7 @@ class StreamingHandler(BaseHTTPRequestHandler):
     Handles the do_GET streaming of the dynamically configurable page
     and the actions to take based on the do_POST requests from the client
     """
-    
+
     def do_POST(self):
         global message_1, stop_start, was_button_pressed, motion_button,\
                trigger_level,reset_trigger, should_delete_files,\
@@ -164,8 +171,8 @@ class StreamingHandler(BaseHTTPRequestHandler):
 
         content_length = int(self.headers['Content-Length'])  # Get data length
         post_data = self.rfile.read(content_length).decode("utf-8")  # Get the data
-        
-        # If multi-parameter post data is returned, split into items
+
+        # If multi-parameter post data is submitted, split into items
         if "&" in post_data:
             conf_items=post_data.split("&")
             for items in conf_items:
@@ -175,10 +182,9 @@ class StreamingHandler(BaseHTTPRequestHandler):
                 if value != '':
                     config.set('ropey',name,value)
                     print(name, value)
-          
+
         else:
-            post_data = post_data.split("=")[1]  # Only keep the value
-          
+            post_data = post_data.split("=")[1]  # Value from single button presses
 
         if post_data == 'Manual_Recording_START':
             message_1 = "Live streaming with Manual Recording ACTIVE"
@@ -243,7 +249,6 @@ class StreamingHandler(BaseHTTPRequestHandler):
             if should_exit:
                 cleanup()
                 mjpeg_abort = True
-                picam2.close()
                 sys.exit(0)
             should_exit = True
             exit_button_colour = ACTIVE
@@ -283,10 +288,10 @@ class StreamingHandler(BaseHTTPRequestHandler):
         self.send_header('Content-type', 'text/html')
         self.send_header('Location', path)
         self.end_headers()
-    
+
     def log_message(self, format, *args):
         return  # This effectively suppresses the log output
-    
+
     def do_GET(self):
         PAGE = """\
             <!DOCTYPE html>
@@ -298,7 +303,7 @@ class StreamingHandler(BaseHTTPRequestHandler):
                 </head>
                 <body>
                   <center>
-                    <h2>Ropey-Cam   Live Streaming with motion-triggered Recording</h2>
+                    <h2>Ropey-Cam  Live Streaming with motion-triggered Recording</h2>
                     <img src="stream.mjpg" width="{ph1}" height="{ph2}" />
                     <p> {ph3}  </p>
                     <form action="/" method="POST">
@@ -321,51 +326,45 @@ class StreamingHandler(BaseHTTPRequestHandler):
                     <form action="/" method="POST">
                       <label for "VIDEO_WIDTH">VIDEO WIDTH</label>
                       <input type="number" id="VIDEO_WIDTH" name="VIDEO_WIDTH" min="1024" max="1920"step="32" >
-                      
+
                       <label for "STREAM_WIDTH">STREAM WIDTH</label>
                       <input type="number" id="STREAM_WIDTH" name="STREAM_WIDTH" min="512" max="1280"step="128">
-                                            
+
                       <label for "ASPECT_RATIO">ASPECT RATIO</label>
-                      <input type="number" id="ASPECT_RATIO" name="ASPECT_RATIO" min="1.3330" max="1.777"step=".444">             
-                      
+                      <input type="number" id="ASPECT_RATIO" name="ASPECT_RATIO" min="1.333" max="2.221"step=".444">
                       <p></p>
-                      
                       <label for "FRAMES_PER_SECOND">FPS</label>
                       <input type="number" id="FRAMES_PER_SECOND" name="FRAMES_PER_SECOND" min="10" max="30"step="5" style="margin-right: 30px">
-                      
+
                       <label for "SENSOR_MODE">MODE</label>
                       <input type="number" id="SENSOR_MODE" name="SENSOR_MODE" min="0" max="14" style="margin-right: 30px">
-                      
+
                       <label for "HFLIP Off"> Hflip........Off </label>
                       <input type="radio" name="HFLIP" value = False >
-                      
+
                       <label for "HFLIP On">On</label>
                       <input type="radio" name="HFLIP" value = True style="margin-right: 30px">
-                      
+
                       <label for "VFLIP Off"> Vflip........Off </label>
                       <input type="radio" name="VFLIP" value = False ">
-                      
+
                       <label for "VFLIP On">On</label>
                       <input type="radio" name="VFLIP" value = True>
-                      
                       <p></p>
-                      
                       <label for "trigger_level">trigger_level</label>
                       <input type="text" size ="5" id="trigger_level" name="trigger_level">
-                      
+
                       <label for "AFTER_FRAMES">AFTER # FRAMES</label>
                       <input type="number" id="AFTER_FRAMES" name="AFTER_FRAMES" min="0" max="30">
-                      
+
                       <label for "BUFFER_SECONDS"> Buffer (Seconds) </label>
                       <input type="number" id="BUFFER_SECONDS" name="BUFFER_SECONDS" min ="1" max="10">
-                      
+
                       <label for "POST_ROLL">Post Roll</label>
                       <input type="number" id="POST_ROLL" name = "POST_ROLL" min ="0" max="10">
-
                       <p></p>
-                      
                       <input type="submit" value="Submit">
-                
+
                     </form>
                   </center>
                 </body>
@@ -381,7 +380,7 @@ class StreamingHandler(BaseHTTPRequestHandler):
                        ph9 = reboot_button_colour,
                        ph10 = shutdown_button_colour,
                        ph11 = delete_button_colour)
-                       
+
         if self.path == '/':
             self.send_response(301)
             self.send_header('Location', '/index.html')
@@ -423,8 +422,8 @@ class StreamingHandler(BaseHTTPRequestHandler):
 def update_ini_file():
     with open('ropey.ini', 'w') as configfile:
         config.write(configfile)
-        
-        
+
+
 def apply_timestamp(request):
     clock_time = datetime.now()
     milliseconds = clock_time.microsecond // 1000
@@ -468,14 +467,14 @@ def mjpeg_encode():  # Superimpose data on YUV420 frames then encode them as jpe
         with cb_condition:
             cb_condition.wait()
             yuv = copy(cb_frame)
-             
+
             # embed result of frame to frame difference calculation,
             #  versus current trigger level, in top left of frame.
             motion_stamp = f"{total_motion:06d}/{trigger_level:06d}"
-             
+
             cv2.putText(yuv, motion_stamp, (12, 22), font, scale ,
                         (Y_STREAM_STAMP, 0, 0), thickness // 2)
-            
+
             if is_recording:
                 # put a red REC stamp in top right of frame
                 cv2.putText(yuv,"REC",(STREAM_WIDTH - 72, 22), font, 1, (Y, 0, 0), 2)
@@ -523,9 +522,10 @@ def close_files(start_time, close_time):
 
 
 def control_storage():
-    """If running low on disk space delete oldest file pair
-     after writing most recent one"""
-     
+    """ If running low on disk space delete oldest file pair
+        after writing most recent one
+        """
+
     total, used, _ = disk_usage("Videos")
     used_space = used / total
     if used_space > MAX_DISK_USAGE:
@@ -533,15 +533,15 @@ def control_storage():
         oldest_video_file=sorted(glob("Videos/*.mp4"), key = os.path.getctime)[0]
         os.remove(oldest_snapshot)
         os.remove(oldest_video_file)
-        
+
 
 def get_mask(frame1, frame2, kernel=array((9,9), dtype=uint8)):
     """ Obtains image mask
-        Inputs: 
+        Inputs:
             frame1 - Grayscale frame at time t
             frame2 - Grayscale frame at time t + 1
             kernel - (NxN) array for Morphological Operations
-        Outputs: 
+        Outputs:
             mask - Thresholded mask for moving pixels
         """
 
@@ -549,7 +549,7 @@ def get_mask(frame1, frame2, kernel=array((9,9), dtype=uint8)):
 
     # blur the frame difference
     frame_diff = cv2.medianBlur(frame_diff, 3)
-    
+
     mask = cv2.adaptiveThreshold(frame_diff, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
             cv2.THRESH_BINARY_INV, 11, 3)
 
@@ -557,11 +557,11 @@ def get_mask(frame1, frame2, kernel=array((9,9), dtype=uint8)):
 
     # morphological operations
     mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=1)
-    
+
     return mask
 
 def get_contour_detections(mask, thresh=20):
-    """ Obtains initial proposed detections from contours discovered on the mask. 
+    """ Obtains initial proposed detections from contours discovered on the mask.
         Scores are taken as the bbox area, larger is higher.
         Inputs:
             mask - thresholded image mask
@@ -570,14 +570,14 @@ def get_contour_detections(mask, thresh=20):
             detections - array of proposed detection bounding boxes and scores [[x1,y1,x2,y2,s]]
         """
     # get mask contours
-    contours, _ = cv2.findContours(mask, 
+    contours, _ = cv2.findContours(mask,
                                    cv2.RETR_EXTERNAL,
                                    cv2.CHAIN_APPROX_TC89_L1)
     detections = []
     for cnt in contours:
         x,y,w,h = cv2.boundingRect(cnt)
         area = w*h
-        if area > thresh: 
+        if area > thresh:
             detections.append([x,y,x+w,y+h, area])
 
     return array(detections)
@@ -588,10 +588,11 @@ def motion():
     while True:
         previous_frame = None
         motion_frames = 0
-        
-        # Ignore motion check if button was recently pressed     
+        previous_motion_score = 0
+
+        # Ignore motion check if button was recently pressed
         if not was_button_pressed:
-             
+
             while True:
                 with cb_condition:
                     cb_condition.wait()
@@ -599,19 +600,19 @@ def motion():
                     grey_frame=current_frame[:STREAM_HEIGHT, :]
 
                 if previous_frame is not None:
-                    total_motion = 0                 
-                    
+                    total_motion = 0
+
                     # get image mask for moving pixels
                     mask = get_mask(previous_grey_frame, grey_frame, kernel)
-                    
+
                     # get initially proposed detections from contours
                     detections = get_contour_detections(mask, thresh = 20)
-                                        
-                    # if there are any detections use the areas to give 'motion scores' 
+
+                    # if there are any detections use the areas to give 'motion scores'
                     if detections.size > 0:
                         scores = detections[:, -1]
-                        total_motion = scores.sum()
-                        
+                        total_motion = (scores.sum() + previous_motion_score) // 2
+
                     motion_frames = motion_frames + 1 if total_motion > trigger_level else 0
                     if motion_frames >= AFTER_FRAMES or set_manual_recording:
                         if not is_recording:
@@ -620,8 +621,9 @@ def motion():
                             open_files(current_frame)
                         last_motion_time = time()
                     else:
-                        # Wait for 3 seconds after motion stops before closing + 3 seconds for the buffer length.
-                        if (is_recording and ((time() - last_motion_time) > (BUFFER_SECONDS + POST_ROLL))): 
+                        # Wait for 3 seconds after motion stops  + 3 seconds for the buffer length.
+                        # Then close the video recording file and check the disk usage
+                        if (is_recording and ((time() - last_motion_time) > (BUFFER_SECONDS + POST_ROLL))):
                             is_recording = False
                             close_time = time()
                             close_files(start_time, close_time)
@@ -629,7 +631,8 @@ def motion():
 
                 previous_frame = current_frame
                 previous_grey_frame=grey_frame
-                was_button_pressed = False            
+                previous_motion_score = total_motion
+                was_button_pressed = False
 
 
 def stream():
@@ -641,8 +644,8 @@ def stream():
     finally:
         # Shouldn't ever reach this but....
         cleanup()
-        picam2.close()
         mjpeg_abort = True
+        sys.exit(0)
 
 os.environ["LIBCAMERA_LOG_LEVELS"] = "4"  # reduce libcamera messsages
 
