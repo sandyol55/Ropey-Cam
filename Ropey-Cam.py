@@ -106,10 +106,11 @@ VFLIP = config.getboolean('ropey','vflip')
 # Video file counter, to retain consecutive file numbering after restarts
 video_count = config.getint('ropey','video_count')
 
+# Limit before file deletion is activated
+MAX_DISK_USAGE = config.getfloat('ropey','max_disk_usage')
+
 # Not currently stored in config file
 INF_TRIGGER_LEVEL = 999999  # Impossibly high to deactiviate detection
-
-MAX_DISK_USAGE = 0.8  # Limit before file deletion is activated
 
 # State variables for inter thread control
 was_button_pressed = False
@@ -334,10 +335,10 @@ class StreamingHandler(BaseHTTPRequestHandler):
                       <input type="number" id="ASPECT_RATIO" name="ASPECT_RATIO" min="1.333" max="2.221"step=".444">
                       <p></p>
                       <label for "FRAMES_PER_SECOND">FPS</label>
-                      <input type="number" id="FRAMES_PER_SECOND" name="FRAMES_PER_SECOND" min="10" max="30"step="5" style="margin-right: 30px">
+                      <input type="number" id="FRAMES_PER_SECOND" name="FRAMES_PER_SECOND" min="10" max="30"step="5" style="margin-right: 20px">
 
                       <label for "SENSOR_MODE">MODE</label>
-                      <input type="number" id="SENSOR_MODE" name="SENSOR_MODE" min="0" max="14" style="margin-right: 30px">
+                      <input type="number" id="SENSOR_MODE" name="SENSOR_MODE" min="0" max="14" style="margin-right: 20px">
 
                       <label for "HFLIP Off"> Hflip........Off </label>
                       <input type="radio" name="HFLIP" value = False >
@@ -351,17 +352,20 @@ class StreamingHandler(BaseHTTPRequestHandler):
                       <label for "VFLIP On">On</label>
                       <input type="radio" name="VFLIP" value = True>
                       <p></p>
-                      <label for "trigger_level">trigger_level</label>
-                      <input type="text" size ="5" id="trigger_level" name="trigger_level">
+                      <label for "trigger_level">Trigger @</label>
+                      <input type="text" size = 4 id="trigger_level" name="trigger_level">
 
-                      <label for "AFTER_FRAMES">AFTER # FRAMES</label>
-                      <input type="number" id="AFTER_FRAMES" name="AFTER_FRAMES" min="0" max="30">
+                      <label for "AFTER_FRAMES"># Frames</label>
+                      <input type="number" style = "width: 40px" id="AFTER_FRAMES" name="AFTER_FRAMES" min="0" max="30">
 
-                      <label for "BUFFER_SECONDS"> Buffer (Seconds) </label>
-                      <input type="number" id="BUFFER_SECONDS" name="BUFFER_SECONDS" min ="1" max="10">
+                      <label for "BUFFER_SECONDS"> Buffer</label>
+                      <input type="number" style = "width: 40px" id="BUFFER_SECONDS" name="BUFFER_SECONDS" min ="1" max="10">
 
                       <label for "POST_ROLL">Post Roll</label>
-                      <input type="number" id="POST_ROLL" name = "POST_ROLL" min ="0" max="10">
+                      <input type="number" style = "width: 40px" id="POST_ROLL" name = "POST_ROLL" min ="0" max="10">
+
+                      <label for "MAX_DISK_USAGE">Storage Limit</label>
+                      <input type="number" style = "width: 50px" id="MAX_DISK_USAGE" name = "MAX_DISK_USAGE" min ="0.1" max="0.975" step="0.025">
                       <p></p>
                       <input type="submit" value="Submit">
 
@@ -621,7 +625,7 @@ def motion():
                             open_files(current_frame)
                         last_motion_time = time()
                     else:
-                        # Wait for 3 seconds after motion stops  + 3 seconds for the buffer length.
+                        # Wait for POST_ROLL + BUFFER_SECONDS seconds after motion stops
                         # Then close the video recording file and check the disk usage
                         if (is_recording and ((time() - last_motion_time) > (BUFFER_SECONDS + POST_ROLL))):
                             is_recording = False
@@ -659,7 +663,7 @@ picam2.configure(picam2.create_video_configuration(sensor = {"output_size":mode[
                                                    main = {"size" : (VIDEO_WIDTH, VIDEO_HEIGHT),'format' : "BGR888"},
                                                    lores = {"size" : (STREAM_WIDTH, STREAM_HEIGHT),'format' : "YUV420"}, buffer_count = 10))
 
-encoder = H264Encoder(repeat = True, iperiod = FRAMES_PER_SECOND * BUFFER_SECONDS // 2)
+encoder = H264Encoder(repeat = True, iperiod = FRAMES_PER_SECOND)
 
 picam2.pre_callback = apply_timestamp
 
