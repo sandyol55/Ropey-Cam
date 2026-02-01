@@ -66,48 +66,59 @@ if not os.path.isdir("Videos"):
     os.mkdir("Videos")
 
 # Get configuration constants from .ini file
+config_file = 'ropey.ini'
 config=configparser.ConfigParser()
-config.read('ropey.ini')
 
+# If no file found, print an error messager and create a blank file.
+if not os.path.exists(config_file):
+    print(f"Configuration file {config_file} does not exist.")
+    print("Using defaults.")
+    config['ropey'] ={}
+else:
+    try:
+        config.read(config_file)
+    except configparser.Error as e:
+        print(f"Error reading configuration file: {e}")
+        
 # Recording (hi-res) and streaming (lo-res) video resolutions
-VIDEO_WIDTH = config.getint('ropey','video_width')
-STREAM_WIDTH = config.getint('ropey','stream_width')
-ASPECT_RATIO = config.getfloat('ropey', 'aspect_ratio')
+VIDEO_WIDTH = config.getint('ropey','video_width', fallback =1280)
+STREAM_WIDTH = config.getint('ropey','stream_width', fallback = 640)
+ASPECT_RATIO = config.getfloat('ropey', 'aspect_ratio', fallback = 1.777)
 
-# Calculate heights from width and aspect ratio
-VIDEO_HEIGHT = int(VIDEO_WIDTH/ASPECT_RATIO)
-STREAM_HEIGHT = int(STREAM_WIDTH/ASPECT_RATIO)
+# Calculate heights from width and aspect ratio, and ensure HEIGHTs  are even.
+VIDEO_HEIGHT = int(2* ((VIDEO_WIDTH/ASPECT_RATIO) // 2))
+STREAM_HEIGHT = int(2 * ((STREAM_WIDTH/ASPECT_RATIO) // 2))
 
 # Frame to frame change limit for motion detection
-trigger_level = config.getint('ropey','trigger_level')
+trigger_level = config.getint('ropey','trigger_level', fallback = 200)
 
 # Save a copy of the trigger_level to use in re-enabling motion detection.
 reset_trigger = trigger_level
 
 # Mode parameter that controls key sensor parameters
-SENSOR_MODE = config.getint('ropey','sensor_mode')
+SENSOR_MODE = config.getint('ropey','sensor_mode', fallback = 1)
 
 # Conservatively 15fps for pre Pi3 models, 25 or 30fps for later models.
-FRAMES_PER_SECOND = config.getint('ropey','frames_per_second')
+FRAMES_PER_SECOND = config.getint('ropey','frames_per_second', fallback = 20)
 
 # Length of time (seconds) inside circular buffer
-BUFFER_SECONDS = config.getint('ropey','buffer_seconds')
+BUFFER_SECONDS = config.getint('ropey','buffer_seconds', fallback =3)
 
 # Number of consecutive frames with motion to trigger recording
-AFTER_FRAMES = config.getint('ropey','after_frames')
+AFTER_FRAMES = config.getint('ropey','after_frames', fallback = 5)
 
 # Post-motion additional recording time (seconds)
-POST_ROLL = config.getint('ropey','post_roll')
+POST_ROLL = config.getint('ropey','post_roll', fallback = 3)
 
 # Transform controls
-HFLIP = config.getboolean('ropey','hflip')
-VFLIP = config.getboolean('ropey','vflip')
+HFLIP = config.getboolean('ropey','hflip', fallback = False)
+VFLIP = config.getboolean('ropey','vflip', fallback = False)
 
 # Video file counter, to retain consecutive file numbering after restarts
-video_count = config.getint('ropey','video_count')
+video_count = config.getint('ropey','video_count', fallback = 0)
 
 # Limit before file deletion is activated
-MAX_DISK_USAGE = config.getfloat('ropey','max_disk_usage')
+MAX_DISK_USAGE = config.getfloat('ropey','max_disk_usage', fallback = 0.8)
 
 # Not currently stored in config file
 INF_TRIGGER_LEVEL = 999999  # Impossibly high to deactiviate detection
