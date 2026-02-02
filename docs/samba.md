@@ -67,7 +67,7 @@ Then start the samba service.
 
 And to ensure it starts on reboot 
 
-`sudo systemctl enable smbd
+`sudo systemctl enable smbd`
 
 Verify the service status with
  

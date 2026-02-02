@@ -56,7 +56,7 @@ After testing the application in the intended environment and finding the optimu
 To help ensure the triggering is caused by 'true motion' the current default setting of AFTER # FRAMES is to wait for 5 consecutive frames with a 'Frame Difference' above the trigger_level, before activating recording.
  
 
-### Buffer and Post-roll 
+### Buffer 
 The current default of buffer_seconds is set to 3 seconds, and controls the length of the circular buffer that is capturing frames from before the trigger moment. Longer values are possible, but will increase the memory requirements.
 
 ### Post Roll
