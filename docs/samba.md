@@ -41,7 +41,6 @@ path = /home/username/Ropey-Cam
 available = yes
 browsable = yes
 writeable = yes
-read only = no
 create mask = 0777
 directory mask = 0777
 public = no
@@ -68,7 +67,11 @@ Then start the samba service.
 
 And to ensure it starts on reboot 
 
-`sudo systemctl enable smbd`
+`sudo systemctl enable smbd
+
+Verify the service status with
+ 
+`sudo systemctl status smbd`
 
 ---
 
@@ -80,7 +83,11 @@ On a Pi with the standard File Manager, open the Go menu and select Network
 
 Or on a Pi with Thunar, open the Go menu and select Browse Network
 
-The network share with the server device name should appear and opening it should lead to the Ropey-Cam share and two other shares defined in the samba configuration.
+The network share with the server device name should appear and on opening it a credentials request may appear.
+
+Fill in any requested credential request  with the registered username and samba password.
+
+You should then have access to the Ropey-Cam share and two other shares defined in the samba configuration.
 
 Open the Ropey-Cam shared folder and the files and the Videos sub-folder should be available for browsing.
 
@@ -94,7 +101,7 @@ On a Windows (11) PC open the File Explorer and in the Home search bar enter
 
 replacing the IP address with the address of *your* Raspberry Pi server device.
 
-The share should open.
+Again fill in any requested credentials and the share should open.
 
 To make a more permanent link go to This PC and from the ... menu select Map Network drive and fill in the prompted details, using the same \\\server\share format.
 

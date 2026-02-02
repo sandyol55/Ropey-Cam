@@ -2,9 +2,9 @@
 
 ### Ropey-Cam is a Python-based surveillance camera system, designed for Raspberry Pi single-board computers with attached camera modules. The system provides real-time, low-latency, MJPEG video streaming to web browsers, while simultaneously monitoring for motion, and recording high-quality H.264/.mp4 video clips when motion is detected.
 
-As a long term user of the comprehensive [RPi_Cam_Web_Interface](https://github.com/silvanmelchior/RPi_Cam_Web_Interface) with various RPi cameras (V1,V2 and HQ), it was frustrating not being able to use third party cameras or any of the later RPi camera modules with RCWI. Unable to find any libcamera/Picamera2 based alternatives, and as a learning exercise, work started on a basic -*very basic*- alternative.
+As a long term user of the comprehensive [RPi_Cam_Web_Interface](https://github.com/silvanmelchior/RPi_Cam_Web_Interface) with various RPi cameras (V1,V2 and HQ), it was frustrating not being able to use third party cameras e.g IMX462, nor any of the later RPi camera modules with RCWI. Unable to find any suitable  libcamera/Picamera2 based alternatives, and as a learning exercise, work started on this basic -*very basic*- alternative.
 
-For those looking for more comprehensive features, the very fully featured [raspi-cam-srv](https://github.com/signag/raspi-cam-srv) is recommended.
+For those looking for more comprehensive features, the very fully featured [raspi-cam-srv](https://github.com/signag/raspi-cam-srv) is recommended. 
 
 "Ropey-Cam" reflects its construction methodology: it is assembled from code snippets and examples from the Picamera2 repository, with minimal Python complexity, and uses a multi-threaded architecture to handle concurrent operations. In it's basic form, when installed on a RPi with the standard desktop OS, the only additional dependency is OpenCV.
 
@@ -63,7 +63,7 @@ Brief description of the effect of the control buttons, some of which may be fam
 The button text describes the action that will be taken when the button is pressed, while the colour indicates the current state of that control active/inactive.
 
 **Motion_Detect_Off**
->  will disable the motion detection, but retain the live stream.
+>  will disable the active motion detection, but retain the live stream.
 
 > will be replaced by Motion_Detect_On after being pressed.
 
@@ -93,8 +93,7 @@ The button text describes the action that will be taken when the button is press
 **REBOOT**
 >will reboot the Raspberry Pi. 
 
->Best used in an advanced set-up where Ropey-Cam has been set to 
-start on boot up.
+>Best used in an advanced set-up where Ropey-Cam has been set to start on boot up.
 
 **SHUTDOWN**
 > will shutdown the Raspberry Pi.
@@ -103,7 +102,8 @@ start on boot up.
 
 >All four of the system control buttons change colour to indicate a 'primed' state after the first press. 
 
----
+See the General Notes linked at the bottom of the page for a description of the configuration input fields below the main control buttons.
+
 
 ### Pre-deployment configuration
 
@@ -115,7 +115,7 @@ The default configuration is currently :-
 
 16:9 output with a 1280x720 main stream resolution and 640x360 for the browser stream, and a framerate of 20 fps.
 
-The sensor default mode is set to 1, which will typically give a full frame (16:9) 2x2 binned mode on HQ and V3 cameras, or a full frame (4:3) 2x2 binned mode on V1 or V2 cameras. Details on the available changes are in the General Notes section at the bottom of the page.
+The sensor default mode is set to 1, which will typically give a full frame (16:9) 2x2 binned mode on HQ and V3 cameras, or a full frame (4:3) 2x2 binned mode on V1 or V2 cameras. 
 
 Other recommended steps before deploying are:-
 

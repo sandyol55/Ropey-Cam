@@ -1,11 +1,14 @@
 ## Instructions to configure a Lite installation
-Although a full RPiOS is recommended for all Pi variants, if using a Pi Zero2W or 3A+ you may want to run on a Lite installation, to have a bit more memory 'headroom'.
+Although a full RPiOS is recommended for ease of use on all Pi variants, if using a Pi Zero2W or 3A+ you may want to run on a Lite installation, to have a bit more memory 'headroom'. If running a remote headless camera it would be sufficient to use a Lite version of the OS on any Pi model.
 
->Flash a new 64bit Lite image to a card, with SSH configured.
+ To prepare a Lite installation:-
 
->Insert card into the Pi with a connected camera module.
 
->Power on and *wait* until the full image installation and reboot sequences are complete. (Could take up to 15 minutes with a slow SD card! )
+>Flash a new 64bit Lite image to a card,with WiFi, User details and SSH pre-configured.
+
+>Insert the card into the Pi with a connected camera module, and preferably with a monitor connected, (to help follow the progress of the installation process and to take note of the assigned IP address). 
+
+>Power on and *wait* until the full image installation and reboot sequences are complete. (Could take up to 10 minutes with a slow SD card and/or a slower Pi model!)
 
 >SSH in to the Pi and :-
 
@@ -23,7 +26,7 @@ Although a full RPiOS is recommended for all Pi variants, if using a Pi Zero2W o
 
 `./Ropey-Cam.py`
 
-Then continue as per the main page documentation to point a browser at the Raspberry Pi. (Wait about 10-15 seconds to allow all the libraries to load and for the camera to be initialised).
+Then continue as per the main page documentation use another device to to point a browser at the Raspberry Pi. (Wait about 15-30 seconds to allow all the libraries to load and for the camera to be initialised).
 
 At this point you should see the image from the camera in the browser page and messages about the status in the terminal window.
 
@@ -42,6 +45,6 @@ Or, to avoid the console and error messages filling up the nohup output log :-
 
 A screenshot from a Pi5 browser accessing Ropey-Cam.py running on  Pi3A+,  with two ssh sessions attached, one with htop running and a second running Ropey-Cam, along with a samba share connected  - shows markedly lower memory usage than the 'Desktop' version running on a Pi3B that was shown in the main page.
 
-The latency in this case was ~200ms but was much more consistent than the Desktop version. This consistency *may* be due to the lower overall CPU usage under the Lite OS?
+The latency indicated in the screenshot in this case was ~200ms, while the range seen over a number of captures was typically 130-220ms.
 
 ![Lite Installation screenshot from a Pi400](lite_screenshot.png "Screenshot")
