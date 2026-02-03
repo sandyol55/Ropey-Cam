@@ -33,7 +33,7 @@ Ctrl + X, Y followed by Enter to exit and save.
 
 ### Enable the service to start automatically on boot
 
-`sudo sytemctl enable ropeycam.service
+`sudo systemctl enable ropeycam.service
 `
 
 After this point the script should be executed on next reboot as well as subsequent reboots.
