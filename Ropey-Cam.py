@@ -90,7 +90,7 @@ VIDEO_HEIGHT = int(2* ((VIDEO_WIDTH/ASPECT_RATIO) // 2))
 STREAM_HEIGHT = int(2 * ((STREAM_WIDTH/ASPECT_RATIO) // 2))
 
 # Frame to frame change limit for motion detection
-trigger_level = config.getint('ropey','trigger_level', fallback = 200)
+trigger_level = config.getint('ropey','trigger_level', fallback = 400)
 
 # Save a copy of the trigger_level to use in re-enabling motion detection.
 reset_trigger = trigger_level
@@ -278,17 +278,17 @@ class StreamingHandler(BaseHTTPRequestHandler):
             trigger_level = INF_TRIGGER_LEVEL
 
         elif post_data == 'Inc_TriggerLevel':
-            message_1 = """Decrease motion sensitivity by increasing
+            message_1 = """Decreasing motion sensitivity by increasing
              trigger level"""
             if trigger_level < INF_TRIGGER_LEVEL:
-                trigger_level += 1
-                reset_trigger += 1
+                trigger_level += 10
+                reset_trigger += 10
 
         elif post_data == 'Dec_TriggerLevel':
-            message_1 = "Increase motion sensitivity by decreasing trigger level"
-            if trigger_level > 1:
-                trigger_level -= 1
-                reset_trigger -= 1
+            message_1 = "Increasing motion sensitivity by decreasing trigger level"
+            if trigger_level > 10:
+                trigger_level -= 10
+                reset_trigger -= 10
 
         print("Control button pressed was {}".format(post_data))
         print()
@@ -665,7 +665,7 @@ def stream():
 os.environ["LIBCAMERA_LOG_LEVELS"] = "4"  # reduce libcamera messsages
 
 # Configure Camera and start it running
-picam2 = Picamera2()
+picam2 = Picamera2(1)
 mode = picam2.sensor_modes[SENSOR_MODE]
 
 picam2.configure(picam2.create_video_configuration(sensor = {"output_size":mode['size'],'bit_depth':mode['bit_depth']},
