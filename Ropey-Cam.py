@@ -665,7 +665,7 @@ def stream():
 os.environ["LIBCAMERA_LOG_LEVELS"] = "4"  # reduce libcamera messsages
 
 # Configure Camera and start it running
-picam2 = Picamera2(1)
+picam2 = Picamera2()
 mode = picam2.sensor_modes[SENSOR_MODE]
 
 picam2.configure(picam2.create_video_configuration(sensor = {"output_size":mode['size'],'bit_depth':mode['bit_depth']},
