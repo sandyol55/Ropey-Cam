@@ -3,8 +3,9 @@
 """
 This script controls a single camera connected to the host Raspberry Pi.
 
-It serves a web page with a set of camera and application control buttons,
- along with an embedded live stream from the camera.
+It serves a web page with a set of camera and application control
+buttons, along with an embedded MJPEG live stream from the camera.
+
 While streaming to the browser, (and also when no browser is connected),
 it is looking for change between consecutive frames in the stream and,
 if sufficent change is detected, will initiate a high-resolution
@@ -27,7 +28,7 @@ import socketserver
 import configparser
 from glob import glob
 from shutil import disk_usage
-from numpy import copy, array, uint8, argsort, all
+from numpy import copy, array, uint8, argsort, all, bitwise_and
 from simplejpeg import encode_jpeg_yuv_planes
 from time import strftime, sleep, time
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -67,13 +68,13 @@ if not os.path.isdir("Videos"):
 
 # Get configuration constants from .ini file
 config_file = 'ropey.ini'
-config=configparser.ConfigParser()
+config = configparser.ConfigParser()
 
-# If no file found, print an error messager and create a blank file.
+# If no file found, print an error message and create a blank file.
 if not os.path.exists(config_file):
     print(f"Configuration file {config_file} does not exist.")
     print("Using defaults.")
-    config['ropey'] ={}
+    config['ropey'] = {}
 else:
     try:
         config.read(config_file)
@@ -85,14 +86,14 @@ VIDEO_WIDTH = config.getint('ropey','video_width', fallback =1280)
 STREAM_WIDTH = config.getint('ropey','stream_width', fallback = 640)
 ASPECT_RATIO = config.getfloat('ropey', 'aspect_ratio', fallback = 1.777)
 
-# Calculate heights from width and aspect ratio, and ensure HEIGHTs  are even.
+# Calculate heights from width and aspect ratio. HEIGHTs are made even.
 VIDEO_HEIGHT = int(2* ((VIDEO_WIDTH/ASPECT_RATIO) // 2))
 STREAM_HEIGHT = int(2 * ((STREAM_WIDTH/ASPECT_RATIO) // 2))
 
 # Frame to frame change limit for motion detection
 trigger_level = config.getint('ropey','trigger_level', fallback = 400)
 
-# Save a copy of the trigger_level to use in re-enabling motion detection.
+# Save a copy of the trigger_level. Use in re-enabling motion detection.
 reset_trigger = trigger_level
 
 # Mode parameter that controls key sensor parameters
@@ -120,6 +121,17 @@ video_count = config.getint('ropey','video_count', fallback = 0)
 # Limit before file deletion is activated
 MAX_DISK_USAGE = config.getfloat('ropey','max_disk_usage', fallback = 0.8)
 
+# Check if motion mask is specified
+apply_motion_mask = config.getboolean('ropey','apply_motion_mask', fallback = False)
+
+# And if it is load the mask_file_name which should be a .pgm filename
+if apply_motion_mask:
+    mask_name = config.get('ropey', 'mask_name', fallback = 'default_mask.pgm')
+    mask_image = Image.open(mask_name)
+    
+    # Convert the pgm image to a Numpy array
+    mask_array = array(mask_image)
+    
 # Not currently stored in config file
 INF_TRIGGER_LEVEL = 999999  # Impossibly high to deactiviate detection
 
@@ -186,7 +198,7 @@ class StreamingHandler(BaseHTTPRequestHandler):
 
         # If multi-parameter post data is submitted, split into items
         if "&" in post_data:
-            conf_items=post_data.split("&")
+            conf_items = post_data.split("&")
             for items in conf_items:
                 name=items.split("=")[0]
                 value = items.split("=")[1]
@@ -337,10 +349,10 @@ class StreamingHandler(BaseHTTPRequestHandler):
                     <p> </p>
                     <form action="/" method="POST">
                       <label for "VIDEO_WIDTH">VIDEO WIDTH</label>
-                      <input type="number" id="VIDEO_WIDTH" name="VIDEO_WIDTH" min="1024" max="1920"step="32" >
+                      <input type="number" id="VIDEO_WIDTH" name="VIDEO_WIDTH" min="1024" max="1920"step="32" style ="margin-right: 12px" >
 
                       <label for "STREAM_WIDTH">STREAM WIDTH</label>
-                      <input type="number" id="STREAM_WIDTH" name="STREAM_WIDTH" min="512" max="1280"step="128">
+                      <input type="number" id="STREAM_WIDTH" name="STREAM_WIDTH" min="512" max="1280"step="128" style ="margin-right: 12px">
 
                       <label for "ASPECT_RATIO">ASPECT RATIO</label>
                       <input type="number" id="ASPECT_RATIO" name="ASPECT_RATIO" min="1.333" max="2.221"step=".444">
@@ -351,13 +363,13 @@ class StreamingHandler(BaseHTTPRequestHandler):
                       <label for "SENSOR_MODE">MODE</label>
                       <input type="number" id="SENSOR_MODE" name="SENSOR_MODE" min="0" max="14" style="margin-right: 20px">
 
-                      <label for "HFLIP Off"> Hflip........Off </label>
+                      <label for "HFLIP Off"> Hflip ........Off </label>
                       <input type="radio" name="HFLIP" value = False >
 
                       <label for "HFLIP On">On</label>
                       <input type="radio" name="HFLIP" value = True style="margin-right: 30px">
 
-                      <label for "VFLIP Off"> Vflip........Off </label>
+                      <label for "VFLIP Off"> Vflip ........Off </label>
                       <input type="radio" name="VFLIP" value = False ">
 
                       <label for "VFLIP On">On</label>
@@ -377,6 +389,15 @@ class StreamingHandler(BaseHTTPRequestHandler):
 
                       <label for "MAX_DISK_USAGE">Storage Limit</label>
                       <input type="number" style = "width: 50px" id="MAX_DISK_USAGE" name = "MAX_DISK_USAGE" min ="0.1" max="0.975" step="0.025">
+                      <p></p>
+                      <label for "Motion Mask Off"> Motion Mask ......... Off</label>
+                      <input type="radio" name="apply_motion_mask" value = False>
+                      
+                      <label for "Motion Mask On"> On</label>
+                      <input type="radio" name="apply_motion_mask" value = True style = "margin-right: 50px">
+                      
+                      <label for "mask_name">Mask File Name.pgm</label>
+                      <input type="text" id="mask_name" name="mask_name">
                       <p></p>
                       <input type="submit" value="Submit">
 
@@ -488,7 +509,7 @@ def mjpeg_encode():  # Superimpose data on YUV420 frames then encode them as jpe
             motion_stamp = f"{total_motion:06d}/{trigger_level:06d}"
 
             cv2.putText(yuv, motion_stamp, (12, 22), font, scale ,
-                        (Y_STREAM_STAMP, 0, 0), thickness // 2)
+                        (Y_STREAM_STAMP, 0, 0), thickness)
 
             if is_recording:
                 # put a red REC stamp in top right of frame
@@ -538,7 +559,6 @@ def close_files(start_time, close_time):
 
 def control_storage():
     """ If running low on disk space delete oldest file pair
-        after writing most recent one
         """
 
     total, used, _ = disk_usage("Videos")
@@ -616,7 +636,11 @@ def motion():
 
                 if previous_frame is not None:
                     total_motion = 0
-
+                    
+                    # Apply motion mask if specified
+                    if apply_motion_mask:
+                        grey_frame = bitwise_and(grey_frame,mask_array) 
+                        
                     # get image mask for moving pixels
                     mask = get_mask(previous_grey_frame, grey_frame, kernel)
 
@@ -645,7 +669,7 @@ def motion():
                             control_storage()
 
                 previous_frame = current_frame
-                previous_grey_frame=grey_frame
+                previous_grey_frame = grey_frame
                 previous_motion_score = total_motion
                 was_button_pressed = False
 
