@@ -1,6 +1,6 @@
 ## Suggestions for setting up a samba share.
 
-These instructions *should* result in a functioning share, but it may be useful to check some online tutorials and find / use an independent set of commands that suit *your* intended use.  e.g. the Global WORKGROUP lines of the configuration file may be unnecessary or incorrect, as may some of the Ropey-Cam share configuration definitions!
+These instructions *should* result in a functioning share, but it may be useful to check some online tutorials and find / use an independent set of commands that suit *your* intended use!
 
 Firstly install the samba packages on the 'Ropey-Cam' Raspberry Pi.
 

@@ -68,7 +68,7 @@ The button text describes the action that will be taken when the button is press
 > will be replaced by Motion_Detect_On after being pressed.
 
 **Inc_ and Dec_TriggerLevel**
->as described above, modify the sensitivity to motion.
+>as described above, modify the sensitivity to frame to frame changes.
 
 **Manual_Recording_Start**
 > will initiate a recording irrespective of motion triggering.
@@ -140,7 +140,7 @@ In the lower left the Thunar file manager is accessing the Videos subdirectory o
 
 And on the right is the browser, showing an image from the camera while it is being pointed at the browsing computer's screen - with a stopwatch in the foreground.
 
-The difference between the stopwatch time in the foreground, and the background - earlier - image of the stopwatch that has been captured, processed, passed through the network to the browser and displayed, is a measure of the system latency.  The latency of 150ms is in the low range of the values seen in this particular configuration, which were typically in the 150 to 200 ms range. 
+The difference between the stopwatch time in the foreground, and the background - earlier - image of the stopwatch that has been captured, processed, passed through the network to the browser and displayed, is a measure of the system latency.  The latency of 200ms is in the top end of the range of the values seen in this particular configuration, which were typically in the 150 to 200 ms range. 
 
 ### Acknowledgements 
 
