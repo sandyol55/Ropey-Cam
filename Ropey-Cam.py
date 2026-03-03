@@ -80,7 +80,8 @@ else:
         config.read(config_file)
     except configparser.Error as e:
         print(f"Error reading configuration file: {e}")
-        
+
+# Set up the configuration variables/CONSTANTS from the stored data
 # Recording (hi-res) and streaming (lo-res) video resolutions
 VIDEO_WIDTH = config.getint('ropey','video_width', fallback =1280)
 STREAM_WIDTH = config.getint('ropey','stream_width', fallback = 640)
@@ -124,14 +125,14 @@ MAX_DISK_USAGE = config.getfloat('ropey','max_disk_usage', fallback = 0.8)
 # Check if motion mask is specified
 apply_motion_mask = config.getboolean('ropey','apply_motion_mask', fallback = False)
 
-# And if it is load the mask_file_name which should be a .pgm filename
+# And if it is, load the mask_file_name which should be a .pgm filename
 if apply_motion_mask:
     mask_name = config.get('ropey', 'mask_name', fallback = 'default_mask.pgm')
     mask_image = Image.open(mask_name)
-    
+
     # Convert the pgm image to a Numpy array
     mask_array = array(mask_image)
-    
+
 # Not currently stored in config file
 INF_TRIGGER_LEVEL = 999999  # Impossibly high to deactiviate detection
 
@@ -147,6 +148,8 @@ is_recording = False
 # Misc constants and variables
 total_motion = 0  # Total area of motion detected via frame differencing
 kernel = array((9,9), dtype=uint8)  # Used in detection function
+mask_name='' # Predefine for use later
+most_recent_page ='/index.html' # Prepare for guided page redirects
 
 # Set text colour, position and size for timestamp in recorded files.
 # Yellow text, near top left of screen, in a small font
@@ -157,7 +160,7 @@ scale = 1
 thickness = 2
 
 # Set Y and u,v colour for a red block REC stamp in streaming frames
-Y,u,v = 200, 110, 250
+Y,u,v = 130, 130, 230
 
 # Set Y for change / trigger level stamp in streaming frames.
 # White stamp so no need for u,v values.
@@ -179,9 +182,14 @@ class StreamingServer(socketserver.ThreadingMixIn, HTTPServer):
 
 class StreamingHandler(BaseHTTPRequestHandler):
     """
-    Handles the do_GET streaming of the dynamically configurable page
-    and the actions to take based on the do_POST requests from the client
+    Handles the streaming in response to the GET requests from the dynamically configurable page
+    and the actions to take based on the POST requests from the client
     """
+    def _redirect(self, path):
+        self.send_response(303)
+        self.send_header('Content-type', 'text/html')
+        self.send_header('Location', path)
+        self.end_headers()
 
     def do_POST(self):
         global message_1, stop_start, was_button_pressed, motion_button,\
@@ -191,7 +199,7 @@ class StreamingHandler(BaseHTTPRequestHandler):
                motion_button_colour, record_button_colour,\
                exit_button_colour, reboot_button_colour,\
                shutdown_button_colour, delete_button_colour,\
-               VIDEO_WIDTH,STREAM_WIDTH,FRAMES_PER_SECOND
+               VIDEO_WIDTH,STREAM_WIDTH,FRAMES_PER_SECOND, most_recent_page
 
         content_length = int(self.headers['Content-Length'])  # Get data length
         post_data = self.rfile.read(content_length).decode("utf-8")  # Get the data
@@ -200,7 +208,7 @@ class StreamingHandler(BaseHTTPRequestHandler):
         if "&" in post_data:
             conf_items = post_data.split("&")
             for items in conf_items:
-                name=items.split("=")[0]
+                name = items.split("=")[0]
                 value = items.split("=")[1]
                 # And populate config for later saving to ini file
                 if value != '':
@@ -295,29 +303,28 @@ class StreamingHandler(BaseHTTPRequestHandler):
             if trigger_level < INF_TRIGGER_LEVEL:
                 trigger_level += 10
                 reset_trigger += 10
+            config.set('ropey','trigger_level',str(trigger_level))      
 
         elif post_data == 'Dec_TriggerLevel':
             message_1 = "Increasing motion sensitivity by decreasing trigger level"
             if trigger_level > 10:
                 trigger_level -= 10
                 reset_trigger -= 10
+            config.set('ropey','trigger_level',str(trigger_level))
 
         print("Control button pressed was {}".format(post_data))
         print()
         was_button_pressed = True
-        self._redirect('/index.html')
+        self._redirect(most_recent_page)
 
-    def _redirect(self, path):
-        self.send_response(303)
-        self.send_header('Content-type', 'text/html')
-        self.send_header('Location', path)
-        self.end_headers()
 
     def log_message(self, format, *args):
         return  # This effectively suppresses the log output
 
     def do_GET(self):
-        PAGE = """\
+        global most_recent_page
+        # HTML descriptions of dynamic home and configuration pages
+        HOMEPAGE = """\
             <!DOCTYPE html>
               <html lang="en">
                 <head>
@@ -346,62 +353,8 @@ class StreamingHandler(BaseHTTPRequestHandler):
                     </form>
                     <p> </p>
                     <br>
+                    <a href="/configuration.html" style="border: 1px solid lightgrey; padding: 10px;background-color: lightgrey; text-decoration: none;">Configuration Entry Page</a>
                     <p> </p>
-                    <form action="/" method="POST">
-                      <label for "VIDEO_WIDTH">VIDEO WIDTH</label>
-                      <input type="number" id="VIDEO_WIDTH" name="VIDEO_WIDTH" min="1024" max="1920"step="32" style ="margin-right: 12px" >
-
-                      <label for "STREAM_WIDTH">STREAM WIDTH</label>
-                      <input type="number" id="STREAM_WIDTH" name="STREAM_WIDTH" min="512" max="1280"step="128" style ="margin-right: 12px">
-
-                      <label for "ASPECT_RATIO">ASPECT RATIO</label>
-                      <input type="number" id="ASPECT_RATIO" name="ASPECT_RATIO" min="1.333" max="2.221"step=".444">
-                      <p></p>
-                      <label for "FRAMES_PER_SECOND">FPS</label>
-                      <input type="number" id="FRAMES_PER_SECOND" name="FRAMES_PER_SECOND" min="10" max="30"step="5" style="margin-right: 20px">
-
-                      <label for "SENSOR_MODE">MODE</label>
-                      <input type="number" id="SENSOR_MODE" name="SENSOR_MODE" min="0" max="14" style="margin-right: 20px">
-
-                      <label for "HFLIP Off"> Hflip ........Off </label>
-                      <input type="radio" name="HFLIP" value = False >
-
-                      <label for "HFLIP On">On</label>
-                      <input type="radio" name="HFLIP" value = True style="margin-right: 30px">
-
-                      <label for "VFLIP Off"> Vflip ........Off </label>
-                      <input type="radio" name="VFLIP" value = False ">
-
-                      <label for "VFLIP On">On</label>
-                      <input type="radio" name="VFLIP" value = True>
-                      <p></p>
-                      <label for "trigger_level">Trigger @</label>
-                      <input type="text" size = 4 id="trigger_level" name="trigger_level">
-
-                      <label for "AFTER_FRAMES"># Frames</label>
-                      <input type="number" style = "width: 40px" id="AFTER_FRAMES" name="AFTER_FRAMES" min="0" max="30">
-
-                      <label for "BUFFER_SECONDS"> Buffer</label>
-                      <input type="number" style = "width: 40px" id="BUFFER_SECONDS" name="BUFFER_SECONDS" min ="1" max="10">
-
-                      <label for "POST_ROLL">Post Roll</label>
-                      <input type="number" style = "width: 40px" id="POST_ROLL" name = "POST_ROLL" min ="0" max="10">
-
-                      <label for "MAX_DISK_USAGE">Storage Limit</label>
-                      <input type="number" style = "width: 50px" id="MAX_DISK_USAGE" name = "MAX_DISK_USAGE" min ="0.1" max="0.975" step="0.025">
-                      <p></p>
-                      <label for "Motion Mask Off"> Motion Mask ......... Off</label>
-                      <input type="radio" name="apply_motion_mask" value = False>
-                      
-                      <label for "Motion Mask On"> On</label>
-                      <input type="radio" name="apply_motion_mask" value = True style = "margin-right: 50px">
-                      
-                      <label for "mask_name">Mask File Name.pgm</label>
-                      <input type="text" id="mask_name" name="mask_name">
-                      <p></p>
-                      <input type="submit" value="Submit">
-
-                    </form>
                   </center>
                 </body>
               </html>
@@ -417,17 +370,119 @@ class StreamingHandler(BaseHTTPRequestHandler):
                        ph10 = shutdown_button_colour,
                        ph11 = delete_button_colour)
 
+        CONFPAGE = """\
+            <!DOCTYPE html>
+              <html lang="en">
+                <html>
+                <head><title>Configuration Entry</title></head>
+                <body>
+                  <center>
+                  <a href="/"style="border: 1px solid lightgrey; padding: 10px;background-color: lightgrey; text-decoration: none;">Back to Home / Streaming Page </a>
+                    <h2>Ropey-Cam Configuration Entry Page</h2>
+                    <p> </p>
+                    <form action="/" method="POST">
+                      <label for "VIDEO_WIDTH">VIDEO WIDTH </label>
+                      <input type="number" id="VIDEO_WIDTH" name="VIDEO_WIDTH" placeholder = {ph12} min="1024"  max="1920"step="32" style ="margin-right: 12px"  >
+
+                      <label for "STREAM_WIDTH">STREAM WIDTH</label>
+                      <input type="number" id="STREAM_WIDTH" name="STREAM_WIDTH" placeholder = {ph13} min="512" max="1280"step="128" style ="margin-right: 12px">
+
+                      <label for "ASPECT_RATIO">ASPECT RATIO</label>
+                      <input type="number" id="ASPECT_RATIO" name="ASPECT_RATIO" placeholder = {ph14} min="1.333" max="2.221"step=".444">
+                      <p></p>
+                      <label for "FRAMES_PER_SECOND">FPS</label>
+                      <input type="number" id="FRAMES_PER_SECOND" name="FRAMES_PER_SECOND" placeholder = {ph15} min="10" max="30"step="5" style="margin-right: 20px">
+
+                      <label for "SENSOR_MODE">MODE</label>
+                      <input type="number" id="SENSOR_MODE" name="SENSOR_MODE" placeholder = {ph16} min="0" max="14" style="margin-right: 20px">
+
+                      <label for "HFLIP Off"> Hflip .({ph17}).Off </label>
+                      <input type="radio" name="HFLIP" value = False >
+
+                      <label for "HFLIP On">On</label>
+                      <input type="radio" name="HFLIP" value = True style="margin-right: 30px">
+
+                      <label for "VFLIP Off"> Vflip .({ph18}).Off </label>
+                      <input type="radio" name="VFLIP" value = False ">
+
+                      <label for "VFLIP On">On</label>
+                      <input type="radio" name="VFLIP" value = True>
+                      <p></p>
+                      <label for "trigger_level">Trigger @</label>
+                      <input type="text" size = 4 id="trigger_level" name="trigger_level" placeholder = {ph19}>
+
+                      <label for "AFTER_FRAMES"># Frames</label>
+                      <input type="number" style = "width: 40px" id="AFTER_FRAMES" name="AFTER_FRAMES" placeholder = {ph20} min="0" max="50">
+
+                      <label for "BUFFER_SECONDS"> Buffer</label>
+                      <input type="number" style = "width: 40px" id="BUFFER_SECONDS" name="BUFFER_SECONDS" placeholder ={ph21} min ="1" max="10">
+
+                      <label for "POST_ROLL">Post Roll</label>
+                      <input type="number" style = "width: 40px" id="POST_ROLL" name = "POST_ROLL" placeholder = {ph22} min ="0" max="10">
+
+                      <label for "MAX_DISK_USAGE">Storage Limit</label>
+                      <input type="number" style = "width: 50px" id="MAX_DISK_USAGE" name = "MAX_DISK_USAGE" placeholder = {ph23} min ="0.1" max="0.975" step="0.025">
+                      <p></p>
+                      <label for "Motion Mask Off"> Motion Mask .({ph24}). Off</label>
+                      <input type="radio" name="apply_motion_mask" value = False>
+
+                      <label for "Motion Mask On"> On</label>
+                      <input type="radio" name="apply_motion_mask" value = True style = "margin-right: 50px">
+
+                      <label for "mask_name">Mask File Name.pgm</label>
+                      <input type="text" id="mask_name" name="mask_name" placeholder = {ph25}>
+                      <p></p>
+                      <input type="submit" value="submit to internal config file">
+                    </form>
+                    <p></p>
+                    <h3>To force / apply the submitted configuration on restart, EXIT and restart.</h3>
+                    <form action="/" method="POST">
+                      <input type="submit" name="submit" value="EXIT" style ="{ph26}">
+                    </form>                    
+                  </center>
+                </body>
+                </html>
+                """.format(ph12 = VIDEO_WIDTH,
+                           ph13 = STREAM_WIDTH,
+                           ph14 = ASPECT_RATIO,
+                           ph15 = FRAMES_PER_SECOND,
+                           ph16 = SENSOR_MODE,
+                           ph17 = str(HFLIP),
+                           ph18 = str(VFLIP),
+                           ph19 = trigger_level,
+                           ph20 = AFTER_FRAMES,
+                           ph21 = BUFFER_SECONDS,
+                           ph22 = POST_ROLL,
+                           ph23 = MAX_DISK_USAGE,
+                           ph24 = str(apply_motion_mask),
+                           ph25 = mask_name,
+                           ph26 = exit_button_colour
+                           )
+
+
         if self.path == '/':
             self.send_response(301)
             self.send_header('Location', '/index.html')
             self.end_headers()
+
         elif self.path == '/index.html':
-            content = PAGE.encode('utf-8')
+            most_recent_page = '/index.html'
+            content = HOMEPAGE.encode('utf-8')
             self.send_response(200)
             self.send_header('Content-Type', 'text/html')
             self.send_header('Content-Length', len(content))
             self.end_headers()
             self.wfile.write(content)
+
+        elif self.path == '/configuration.html':
+            most_recent_page = '/configuration.html'
+            content = CONFPAGE.encode('utf-8')
+            self.send_response(200)
+            self.send_header('Content-type', 'text/html')
+            self.send_header('Content-Length', len(content))
+            self.end_headers()
+            self.wfile.write(content)
+
         elif self.path == '/stream.mjpg':
             self.send_response(200)
             self.send_header('Age', 0)
@@ -454,8 +509,11 @@ class StreamingHandler(BaseHTTPRequestHandler):
             self.end_headers()
 
 
-
 def update_ini_file():
+    global VIDEO_WIDTH
+    # Sanity check for oversize 4:3 video frame
+    if VIDEO_WIDTH > 1600 and ASPECT_RATIO == 1.333:
+        VIDEO_WIDTH = 1600
     with open('ropey.ini', 'w') as configfile:
         config.write(configfile)
 
@@ -636,11 +694,11 @@ def motion():
 
                 if previous_frame is not None:
                     total_motion = 0
-                    
+
                     # Apply motion mask if specified
                     if apply_motion_mask:
                         grey_frame = bitwise_and(grey_frame,mask_array) 
-                        
+
                     # get image mask for moving pixels
                     mask = get_mask(previous_grey_frame, grey_frame, kernel)
 
@@ -689,8 +747,10 @@ def stream():
 os.environ["LIBCAMERA_LOG_LEVELS"] = "4"  # reduce libcamera messsages
 
 # Configure Camera and start it running
+
 picam2 = Picamera2()
 mode = picam2.sensor_modes[SENSOR_MODE]
+
 
 picam2.configure(picam2.create_video_configuration(sensor = {"output_size":mode['size'],'bit_depth':mode['bit_depth']},
                                                    controls = {'FrameRate' : FRAMES_PER_SECOND},
