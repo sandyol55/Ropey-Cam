@@ -26,6 +26,7 @@ import sys
 import logging
 import socketserver
 import configparser
+import ast
 from glob import glob
 from shutil import disk_usage
 from numpy import copy, array, uint8, argsort, all, bitwise_and
@@ -58,6 +59,9 @@ reboot_button_colour = PASSIVE
 shutdown_button_colour = PASSIVE
 delete_button_colour = DELETE_PASSIVE
 
+# Initialise before later check for A/F support
+has_AutoFocus = False
+
 # Ensure the current working directory is the one containing the script
 # and create a Videos sub-directory, if necessary
 full_path=os.path.realpath(__file__)
@@ -75,6 +79,7 @@ if not os.path.exists(config_file):
     print(f"Configuration file {config_file} does not exist.")
     print("Using defaults.")
     config['ropey'] = {}
+
 else:
     try:
         config.read(config_file)
@@ -133,6 +138,64 @@ if apply_motion_mask:
     # Convert the pgm image to a Numpy array
     mask_array = array(mask_image)
 
+# Now a camera controls section. Get the values and populate controls {}
+controls={}
+
+brightness = config.getfloat('ropey', 'brightness' ,fallback = 0.0)
+controls['Brightness'] = brightness
+
+contrast = config.getfloat('ropey', 'contrast' ,fallback = 1.0)
+controls['Contrast'] = contrast
+
+saturation = config.getfloat('ropey', 'saturation' ,fallback = 1.0)
+controls['Saturation'] = saturation
+
+ae_constraint_mode = config.getint('ropey','aeconstraintmode' ,fallback = 0)
+controls['AeConstraintMode'] = ae_constraint_mode
+
+ae_enable = config.getboolean('ropey','aeenable', fallback = True)
+controls['AeEnable'] = ae_enable
+
+exposuretime = config.getint('ropey', 'exposuretime', fallback = 1000)
+analoguegain = config.getfloat('ropey', 'analoguegain', fallback = 1.0)
+if not ae_enable:
+    controls['ExposureTime'] = exposuretime
+    controls['AnalogueGain'] = analoguegain
+
+ae_exposure_mode = config.getint('ropey','aeexposuremode' ,fallback = 0)
+controls['AeExposureMode'] = ae_exposure_mode
+
+exposurevalue = config.getfloat('ropey', 'exposurevalue' ,fallback = 0.0)
+controls['ExposureValue'] = exposurevalue
+
+awb_mode = config.getint('ropey','awbmode' ,fallback = 0)
+controls['AwbMode'] = awb_mode 
+
+awb_enable = config.getboolean('ropey','awbenable' ,fallback = True)
+controls['AwbEnable'] = awb_enable
+
+# If Auto White Balance disabled get and create ColourGains tuple
+if not awb_enable:
+    redcolourgain = config.getfloat('ropey','redcolourgain', fallback = 1.0)
+    bluecolourgain = config.getfloat('ropey','bluecolourgain', fallback = 1.0)
+    colourgains = (redcolourgain,bluecolourgain)
+    controls['ColourGains'] = colourgains
+
+# Check for supported Auto Focus and skip these controls if not available
+if has_AutoFocus:    
+    
+    af_metering = config.getint('ropey','afmetering' ,fallback = 0)
+    controls['AfMetering'] = af_metering
+
+    af_mode = config.getint('ropey','afmode' ,fallback = 0)
+    controls['AfMode'] = af_mode 
+
+    lensposition = config.getfloat('ropey', 'lensposition' ,fallback = 1.0)
+    controls['LensPosition'] = lensposition
+
+    af_range = config.getint('ropey','afrange' ,fallback = 0)
+    controls['AfRange'] = af_range 
+
 # Not currently stored in config file
 INF_TRIGGER_LEVEL = 999999  # Impossibly high to deactiviate detection
 
@@ -150,6 +213,7 @@ total_motion = 0  # Total area of motion detected via frame differencing
 kernel = array((9,9), dtype=uint8)  # Used in detection function
 mask_name='' # Predefine for use later
 most_recent_page ='/index.html' # Prepare for guided page redirects
+
 
 # Set text colour, position and size for timestamp in recorded files.
 # Yellow text, near top left of screen, in a small font
@@ -205,7 +269,7 @@ class StreamingHandler(BaseHTTPRequestHandler):
         post_data = self.rfile.read(content_length).decode("utf-8")  # Get the data
 
         # If multi-parameter post data is submitted, split into items
-        if "&" in post_data:
+        if most_recent_page =="/configuration.html" and "&" in post_data  :
             conf_items = post_data.split("&")
             for items in conf_items:
                 name = items.split("=")[0]
@@ -213,7 +277,38 @@ class StreamingHandler(BaseHTTPRequestHandler):
                 # And populate config for later saving to ini file
                 if value != '':
                     config.set('ropey',name,value)
-                    print(name, value)
+
+        elif most_recent_page =="/controls.html":
+            conf_items = post_data.split("&")
+            for items in conf_items:
+                name = items.split("=")[0]
+                str_value = items.split("=")[1]
+                # And populate config for later saving to ini file
+                # But also set a controls dictionary and apply it 'on the fly'
+                if str_value != '':
+                    if name == "ColourGains":
+                        Rg = float(str_value.split("-")[0])
+                        Bg = float(str_value.split("-")[1])
+                        value=(Rg,Bg)
+                        config.set('ropey',"redcolourgain",str(Rg))
+                        config.set('ropey',"bluecolourgain",str(Bg))
+                    else:
+                        value = eval(str_value)
+
+                    if ("Af" in name or "Lens" in name)  and not has_AutoFocus:
+                        continue
+                    config.set('ropey',name,str_value)
+                    controls[name] = value
+
+                    if name == "AeEnable" and value == True:
+                        controls.pop("ExposureTime", None)
+                        controls.pop("AnalogueGain",None)
+                        
+                    if name == "AwbEnable" and value == True:
+                        controls.pop("ColourGains", None)
+                       
+
+            picam2.set_controls(controls)
 
         else:
             post_data = post_data.split("=")[1]  # Value from single button presses
@@ -312,7 +407,7 @@ class StreamingHandler(BaseHTTPRequestHandler):
                 reset_trigger -= 10
             config.set('ropey','trigger_level',str(trigger_level))
 
-        print("Control button pressed was {}".format(post_data))
+        # print("Control button pressed was {}".format(post_data))
         print()
         was_button_pressed = True
         self._redirect(most_recent_page)
@@ -320,6 +415,13 @@ class StreamingHandler(BaseHTTPRequestHandler):
 
     def log_message(self, format, *args):
         return  # This effectively suppresses the log output
+
+    def _send_response_headers(self, content):
+        self.send_response(200)
+        self.send_header('Content-type', 'text/html')
+        self.send_header('Content-Length', len(content))
+        self.end_headers()
+        self.wfile.write(content)
 
     def do_GET(self):
         global most_recent_page
@@ -351,10 +453,9 @@ class StreamingHandler(BaseHTTPRequestHandler):
                       <input type="submit" name="submit" value="REBOOT" style ="{ph9}">
                       <input type="submit" name="submit" value="SHUTDOWN" style= "{ph10}">
                     </form>
-                    <p> </p>
                     <br>
-                    <a href="/configuration.html" style="border: 1px solid lightgrey; padding: 10px;background-color: lightgrey; text-decoration: none;">Configuration Entry Page</a>
-                    <p> </p>
+                      <a href="/configuration.html" style="border: 1px solid lightgrey; padding: 6px;background-color: lightgrey; text-decoration: none;">Configuration  Entry  Page</a>
+                      <a href="/controls.html" style="border: 1px solid lightgrey; padding: 6px;background-color: lightgrey; text-decoration: none;">Camera Control Entry Page</a>
                   </center>
                 </body>
               </html>
@@ -394,51 +495,52 @@ class StreamingHandler(BaseHTTPRequestHandler):
                       <input type="number" id="FRAMES_PER_SECOND" name="FRAMES_PER_SECOND" placeholder = {ph15} min="10" max="30"step="5" style="margin-right: 20px">
 
                       <label for "SENSOR_MODE">MODE</label>
-                      <input type="number" id="SENSOR_MODE" name="SENSOR_MODE" placeholder = {ph16} min="0" max="14" style="margin-right: 20px">
+                      <input type="number" id="SENSOR_MODE" name="SENSOR_MODE" placeholder = {ph16} min="0" max={ph17} style="margin-right: 20px">
 
-                      <label for "HFLIP Off"> Hflip .({ph17}).Off </label>
+                      <label for "HFLIP Off"> Hflip .({ph18}).Off </label>
                       <input type="radio" name="HFLIP" value = False >
 
                       <label for "HFLIP On">On</label>
                       <input type="radio" name="HFLIP" value = True style="margin-right: 30px">
 
-                      <label for "VFLIP Off"> Vflip .({ph18}).Off </label>
+                      <label for "VFLIP Off"> Vflip .({ph19}).Off </label>
                       <input type="radio" name="VFLIP" value = False ">
 
                       <label for "VFLIP On">On</label>
                       <input type="radio" name="VFLIP" value = True>
                       <p></p>
                       <label for "trigger_level">Trigger @</label>
-                      <input type="text" size = 4 id="trigger_level" name="trigger_level" placeholder = {ph19}>
+                      <input type="text" size = 4 id="trigger_level" name="trigger_level" placeholder = {ph20}>
 
                       <label for "AFTER_FRAMES"># Frames</label>
-                      <input type="number" style = "width: 40px" id="AFTER_FRAMES" name="AFTER_FRAMES" placeholder = {ph20} min="0" max="50">
+                      <input type="number" style = "width: 40px" id="AFTER_FRAMES" name="AFTER_FRAMES" placeholder = {ph21} min="0" max="50">
 
                       <label for "BUFFER_SECONDS"> Buffer</label>
-                      <input type="number" style = "width: 40px" id="BUFFER_SECONDS" name="BUFFER_SECONDS" placeholder ={ph21} min ="1" max="10">
+                      <input type="number" style = "width: 40px" id="BUFFER_SECONDS" name="BUFFER_SECONDS" placeholder ={ph22} min ="1" max="10">
 
                       <label for "POST_ROLL">Post Roll</label>
-                      <input type="number" style = "width: 40px" id="POST_ROLL" name = "POST_ROLL" placeholder = {ph22} min ="0" max="10">
+                      <input type="number" style = "width: 40px" id="POST_ROLL" name = "POST_ROLL" placeholder = {ph23} min ="0" max="10">
 
                       <label for "MAX_DISK_USAGE">Storage Limit</label>
-                      <input type="number" style = "width: 50px" id="MAX_DISK_USAGE" name = "MAX_DISK_USAGE" placeholder = {ph23} min ="0.1" max="0.975" step="0.025">
+                      <input type="number" style = "width: 50px" id="MAX_DISK_USAGE" name = "MAX_DISK_USAGE" placeholder = {ph24} min ="0.1" max="0.975" step="0.025">
                       <p></p>
-                      <label for "Motion Mask Off"> Motion Mask .({ph24}). Off</label>
+                      <label for "Motion Mask Off"> Motion Mask .({ph25}). Off</label>
                       <input type="radio" name="apply_motion_mask" value = False>
 
                       <label for "Motion Mask On"> On</label>
                       <input type="radio" name="apply_motion_mask" value = True style = "margin-right: 50px">
 
                       <label for "mask_name">Mask File Name.pgm</label>
-                      <input type="text" id="mask_name" name="mask_name" placeholder = {ph25}>
+                      <input type="text" id="mask_name" name="mask_name" placeholder = {ph26}>
                       <p></p>
-                      <input type="submit" value="submit to internal config file">
+                      <input type="submit" value="Submit to apply changes to internal config file">
                     </form>
                     <p></p>
-                    <h3>To force / apply the submitted configuration on restart, EXIT and restart.</h3>
+                    <h3>The submitted configuration change takes effect on restart/reboot</h3>
                     <form action="/" method="POST">
-                      <input type="submit" name="submit" value="EXIT" style ="{ph26}">
-                    </form>                    
+                      <input type="submit" name="submit" value="EXIT" style ="{ph27}">
+                      <input type="submit" name="submit" value="REBOOT" style ="{ph28}">
+                    </form>
                   </center>
                 </body>
                 </html>
@@ -447,18 +549,143 @@ class StreamingHandler(BaseHTTPRequestHandler):
                            ph14 = ASPECT_RATIO,
                            ph15 = FRAMES_PER_SECOND,
                            ph16 = SENSOR_MODE,
-                           ph17 = str(HFLIP),
-                           ph18 = str(VFLIP),
-                           ph19 = trigger_level,
-                           ph20 = AFTER_FRAMES,
-                           ph21 = BUFFER_SECONDS,
-                           ph22 = POST_ROLL,
-                           ph23 = MAX_DISK_USAGE,
-                           ph24 = str(apply_motion_mask),
-                           ph25 = mask_name,
-                           ph26 = exit_button_colour
+                           ph17 = str(max_mode),
+                           ph18 = str(HFLIP),
+                           ph19 = str(VFLIP),
+                           ph20 = trigger_level,
+                           ph21 = AFTER_FRAMES,
+                           ph22 = BUFFER_SECONDS,
+                           ph23 = POST_ROLL,
+                           ph24 = MAX_DISK_USAGE,
+                           ph25 = str(apply_motion_mask),
+                           ph26 = mask_name,
+                           ph27 = exit_button_colour,
+                           ph28 = reboot_button_colour
                            )
-
+        CONTROLPAGE = """\
+            <!DOCTYPE html>
+              <html lang="en">
+                <html>
+                  <title>Camera Controls Entry</title>
+                   </head>
+                        <body>
+                          <center>
+                          <a href="/" style="border: 1px solid lightgrey; padding: 10px;background-color: lightgrey; text-decoration: none;">Back to Home / Streaming Page </a>
+                            <h3>Ropey-Cam Camera Control Entry Page</h3>
+                            <p> </p>
+                            <form action="/" method = "POST">
+                                <label for "Brightness"> Brightness (-1.0 through (0.0)  to   +1.0)  </label>
+                                <input type = "number" id = "Brightness" name = "Brightness"  min ="-1.0" max="1.0" step="0.025" value ={ph30} >
+                              <p></p> 
+                                <label for "Contrast"> Contrast (0.0 through (1.0)  to  32.0)</label>
+                                <input type = "number" id = "Contrast" name = "Contrast" min ="0.0" max="32.0" step="0.025" value ={ph31} >
+                              <p></p>
+                                <label for "Saturation"> Saturation (0.0 through (1.0)  to  32.0)</label>
+                                <input type = "number" id = "Saturation" name = "Saturation" min ="0.0" max="32.0" step="0.025" value ={ph32} >
+                                <p></p>
+                              <p></p>
+                                <label for = "AeConstraintMode"> AeConstraintMode :</label>
+                                  <select id = "AeConstraintMode" name ="AeConstraintMode">
+                                    <option value=""></option>
+                                    <option value = 0> Normal </option>
+                                    <option value = 1> Highlight </option>
+                                    <option value = 2> Shadows </option>
+                                    <option value = 3> Custom </option>
+                                  </select>
+                              <p></p>
+                                <label for = "AeEnable"> AeEnable :</label>
+                                  <select id = "AeEnable" name = "AeEnable">
+                                    <option value = ""></option>
+                                    <option value = True > True </option>
+                                    <option value = False > False </option>
+                                  </select>
+                              <p></p>
+                                <label for ="ExposureTime"> ExposureTime (microseconds)</label>
+                                <input type = "number" id = "ExposureTime" name = "ExposureTime" placeholder = {ph34}>
+                              <p></p>
+                                <label for = "AnalogueGain">AnalogueGain</label>
+                                <input type = "number" id = "AnalogueGain" name = "AnalogueGain" placeholder = {ph35}> 
+                              <p></p>
+                                <label for = "AeExposureMode"> AeExposureMode :</label>
+                                  <select id = "AeExposureMode" name="AeExposureMode">
+                                    <option value = ""></option>
+                                    <option value = 0> Normal </option>
+                                    <option value = 1> Short </option>
+                                    <option value = 2> Long </option>
+                                    <option value = 3> Custom </option>
+                                  </select>
+                              <p></p>
+                                <label for = "ExposureValue"> ExposureValue (-8.0 through (0.0)  to  8.0 ) </label>
+                                <input type = "number" id = "ExposureValue" name = "ExposureValue" min ="-8.0" max="8.0" step="0.05" value ={ph36} >
+                              <p></p>
+                                <label for = "AeMeteringMode"> AeMeteringMode :</label>
+                                  <select id = "AeMeteringMode" name = "AeMeteringMode">
+                                    <option value = ""></option>
+                                    <option value = 0> CentreWeighted </option>
+                                    <option value = 1> Spot </option>
+                                    <option value = 2> Matrix </option>
+                                    <option value = 3> Custom </option>
+                                  </select>
+                              <p></p>
+                                <label for = "AwbMode"> AwbMode :</label>
+                                  <select id = "AwbMode" name = "AwbMode">
+                                    <option value = ""></option>
+                                    <option value = 0> Auto </option>
+                                    <option value = 1> Tungsten </option>
+                                    <option value = 2 >Fluorescent </option>
+                                    <option value = 3> Indoor </option>
+                                    <option value = 4> Daylight </option>
+                                    <option value = 5> Cloudy</option>
+                                    <option value = 6> Custom </option>
+                                  </select>
+                              <p></p>
+                                <label for ="AwbEnable"> AwbEnable :</label>
+                                  <select id = "AwbEnable" name ="AwbEnable">
+                                    <option value = ""> </option>
+                                    <option value= True> True </option>
+                                    <option value = False> False </option>
+                                  </select>
+                              <p></p>
+                                <label for = "ColourGains"> ColourGains (Rg hyphen Bg) Rg-Bg</label>
+                                <input type = "text" id = "ColourGains" name = "ColourGains">
+                              <p></p>
+                              <label for ="AfMetering"> AfMetering :</label>
+                                <select id = "AfMetering" name ="AfMetering">
+                                  <option value = ""> </option>
+                                  <option value = 0 > Auto </option>
+                                  <option value = 1 > Windows </option>
+                                </select>
+                              <p></p>
+                                <label for = "AFMode"> AfMode :</label>
+                                  <select id = "AfMode" name="AfMode">
+                                    <option value = ""></option>
+                                    <option value = 0> Manual </option>
+                                    <option value = 1> Auto </option>
+                                    <option value = 2> Continuous </option>
+                                  </select>
+                              <p></p>    
+                                <label for "LensPosition"> LensPosition (0.0 through (1.0)  to   15.0)  </label>
+                                <input type = "number" id = "LensPosition" name = "LensPosition" placeholder = "1.0"  >
+                              <p></p>
+                                <label for = "AFRange"> AfRange :</label>
+                                  <select id = "AfRange" name="AfRange">
+                                    <option value = ""></option>
+                                    <option value = 0> Normal </option>
+                                    <option value = 1> Macro </option>
+                                    <option value = 2> Full </option>
+                                  </select>
+                              <p></p> 
+                                <input type = "submit" value = "Submit to apply control changes to internal config file and immediately to camera">  
+                            </form>
+                          </center>
+                         </body>
+                        </html>
+                        """.format(ph30 = controls["Brightness"],
+                                   ph31 = controls["Contrast"],
+                                   ph32 = controls["Saturation"],
+                                   ph34 = exposuretime,
+                                   ph35 = analoguegain,
+                                   ph36 = controls["ExposureValue"])
 
         if self.path == '/':
             self.send_response(301)
@@ -468,20 +695,17 @@ class StreamingHandler(BaseHTTPRequestHandler):
         elif self.path == '/index.html':
             most_recent_page = '/index.html'
             content = HOMEPAGE.encode('utf-8')
-            self.send_response(200)
-            self.send_header('Content-Type', 'text/html')
-            self.send_header('Content-Length', len(content))
-            self.end_headers()
-            self.wfile.write(content)
+            self._send_response_headers(content)
 
         elif self.path == '/configuration.html':
             most_recent_page = '/configuration.html'
             content = CONFPAGE.encode('utf-8')
-            self.send_response(200)
-            self.send_header('Content-type', 'text/html')
-            self.send_header('Content-Length', len(content))
-            self.end_headers()
-            self.wfile.write(content)
+            self._send_response_headers(content)
+
+        elif self.path == '/controls.html':
+            most_recent_page = '/controls.html'
+            content = CONTROLPAGE.encode('utf-8')
+            self._send_response_headers(content)
 
         elif self.path == '/stream.mjpg':
             self.send_response(200)
@@ -618,7 +842,6 @@ def close_files(start_time, close_time):
 def control_storage():
     """ If running low on disk space delete oldest file pair
         """
-
     total, used, _ = disk_usage("Videos")
     used_space = used / total
     if used_space > MAX_DISK_USAGE:
@@ -652,6 +875,7 @@ def get_mask(frame1, frame2, kernel=array((9,9), dtype=uint8)):
     mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=1)
 
     return mask
+
 
 def get_contour_detections(mask, thresh=20):
     """ Obtains initial proposed detections from contours discovered on the mask.
@@ -744,29 +968,42 @@ def stream():
         mjpeg_abort = True
         sys.exit(0)
 
+
 os.environ["LIBCAMERA_LOG_LEVELS"] = "4"  # reduce libcamera messsages
 
 # Configure Camera and start it running
-
+# Instantiate camera
 picam2 = Picamera2()
-mode = picam2.sensor_modes[SENSOR_MODE]
-
-
+# Interrogate the sensor to find the supported modes
+modes = picam2.sensor_modes
+max_mode = len(modes) -1
+# And select the mode to configure
+mode = modes[SENSOR_MODE]
+# Create the stored configuration
 picam2.configure(picam2.create_video_configuration(sensor = {"output_size":mode['size'],'bit_depth':mode['bit_depth']},
                                                    controls = {'FrameRate' : FRAMES_PER_SECOND},
                                                    transform = Transform(hflip=HFLIP, vflip=VFLIP),
                                                    main = {"size" : (VIDEO_WIDTH, VIDEO_HEIGHT),'format' : "BGR888"},
                                                    lores = {"size" : (STREAM_WIDTH, STREAM_HEIGHT),'format' : "YUV420"}, buffer_count = 10))
-
+# Define the encoder properties
 encoder = H264Encoder(repeat = True, iperiod = FRAMES_PER_SECOND)
-
+# Set the timestamp callback
 picam2.pre_callback = apply_timestamp
-
-# Circular Buffer enabled and started
+# Set the stored set of camera controls
+picam2.set_controls(controls)
+# Circular Buffer properties enabled and started
 circ = CircularOutput2(buffer_duration_ms = BUFFER_SECONDS * 1000)
 encoder.output = [circ]
 picam2.start_recording(encoder, circ, quality = Quality.HIGH)
+# Short delay to allow camera auto algorithms to settle
 sleep(1)
+# Capture the current metadata for use in finding some current camera parameters
+metadata = picam2.capture_metadata()
+exposuretime = metadata["ExposureTime"]
+analoguegain = metadata["AnalogueGain"]
+# Check if this sensor supports AutoFocus
+if "AfState" in metadata:
+    has_AutoFocus = True
 
 # Start up the various 'infinite' threads.
 cb_frame = None
