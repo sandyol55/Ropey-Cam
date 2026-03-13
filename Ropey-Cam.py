@@ -26,7 +26,6 @@ import sys
 import logging
 import socketserver
 import configparser
-import ast
 from glob import glob
 from shutil import disk_usage
 from numpy import copy, array, uint8, argsort, all, bitwise_and
@@ -60,7 +59,7 @@ shutdown_button_colour = PASSIVE
 delete_button_colour = DELETE_PASSIVE
 
 # Initialise before later check for A/F support
-has_AutoFocus = False
+# has_AutoFocus = False
 
 # Ensure the current working directory is the one containing the script
 # and create a Videos sub-directory, if necessary
@@ -169,7 +168,7 @@ exposurevalue = config.getfloat('ropey', 'exposurevalue' ,fallback = 0.0)
 controls['ExposureValue'] = exposurevalue
 
 awb_mode = config.getint('ropey','awbmode' ,fallback = 0)
-controls['AwbMode'] = awb_mode 
+controls['AwbMode'] = awb_mode
 
 awb_enable = config.getboolean('ropey','awbenable' ,fallback = True)
 controls['AwbEnable'] = awb_enable
@@ -182,8 +181,10 @@ if not awb_enable:
     controls['ColourGains'] = colourgains
 
 # Check for supported Auto Focus and skip these controls if not available
-if has_AutoFocus:    
-    
+has_autofocus = config.getboolean('ropey', 'hasautofocus', fallback = False)
+
+if has_autofocus:
+
     af_metering = config.getint('ropey','afmetering' ,fallback = 0)
     controls['AfMetering'] = af_metering
 
@@ -295,7 +296,7 @@ class StreamingHandler(BaseHTTPRequestHandler):
                     else:
                         value = eval(str_value)
 
-                    if ("Af" in name or "Lens" in name)  and not has_AutoFocus:
+                    if ("Af" in name or "Lens" in name)  and not has_autofocus:
                         continue
                     config.set('ropey',name,str_value)
                     controls[name] = value
@@ -303,10 +304,10 @@ class StreamingHandler(BaseHTTPRequestHandler):
                     if name == "AeEnable" and value == True:
                         controls.pop("ExposureTime", None)
                         controls.pop("AnalogueGain",None)
-                        
+
                     if name == "AwbEnable" and value == True:
                         controls.pop("ColourGains", None)
-                       
+
 
             picam2.set_controls(controls)
 
@@ -398,7 +399,7 @@ class StreamingHandler(BaseHTTPRequestHandler):
             if trigger_level < INF_TRIGGER_LEVEL:
                 trigger_level += 10
                 reset_trigger += 10
-            config.set('ropey','trigger_level',str(trigger_level))      
+            config.set('ropey','trigger_level',str(trigger_level))
 
         elif post_data == 'Dec_TriggerLevel':
             message_1 = "Increasing motion sensitivity by decreasing trigger level"
@@ -921,7 +922,7 @@ def motion():
 
                     # Apply motion mask if specified
                     if apply_motion_mask:
-                        grey_frame = bitwise_and(grey_frame,mask_array) 
+                        grey_frame = bitwise_and(grey_frame,mask_array)
 
                     # get image mask for moving pixels
                     mask = get_mask(previous_grey_frame, grey_frame, kernel)
@@ -974,11 +975,14 @@ os.environ["LIBCAMERA_LOG_LEVELS"] = "4"  # reduce libcamera messsages
 # Configure Camera and start it running
 # Instantiate camera
 picam2 = Picamera2()
+
 # Interrogate the sensor to find the supported modes
 modes = picam2.sensor_modes
 max_mode = len(modes) -1
+
 # And select the mode to configure
 mode = modes[SENSOR_MODE]
+
 # Create the stored configuration
 picam2.configure(picam2.create_video_configuration(sensor = {"output_size":mode['size'],'bit_depth':mode['bit_depth']},
                                                    controls = {'FrameRate' : FRAMES_PER_SECOND},
@@ -987,23 +991,29 @@ picam2.configure(picam2.create_video_configuration(sensor = {"output_size":mode[
                                                    lores = {"size" : (STREAM_WIDTH, STREAM_HEIGHT),'format' : "YUV420"}, buffer_count = 10))
 # Define the encoder properties
 encoder = H264Encoder(repeat = True, iperiod = FRAMES_PER_SECOND)
+
 # Set the timestamp callback
 picam2.pre_callback = apply_timestamp
+
 # Set the stored set of camera controls
 picam2.set_controls(controls)
+
 # Circular Buffer properties enabled and started
 circ = CircularOutput2(buffer_duration_ms = BUFFER_SECONDS * 1000)
 encoder.output = [circ]
 picam2.start_recording(encoder, circ, quality = Quality.HIGH)
+
 # Short delay to allow camera auto algorithms to settle
 sleep(1)
+
 # Capture the current metadata for use in finding some current camera parameters
 metadata = picam2.capture_metadata()
 exposuretime = metadata["ExposureTime"]
 analoguegain = metadata["AnalogueGain"]
+
 # Check if this sensor supports AutoFocus
 if "AfState" in metadata:
-    has_AutoFocus = True
+    config.set('ropey','hasautofocus', 'True')
 
 # Start up the various 'infinite' threads.
 cb_frame = None
