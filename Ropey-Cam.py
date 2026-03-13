@@ -777,7 +777,7 @@ def cleanup():
     update_ini_file()
     print("Closing any active recordings, writing ropey.ini file and waiting to", post_data)
     print()
-    sleep(8)
+    sleep(BUFFER_SECONDS + POST_ROLL + 2)
 
 
 def mjpeg_encode():  # Superimpose data on YUV420 frames then encode them as jpegs.
