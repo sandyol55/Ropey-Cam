@@ -58,9 +58,6 @@ reboot_button_colour = PASSIVE
 shutdown_button_colour = PASSIVE
 delete_button_colour = DELETE_PASSIVE
 
-# Initialise before later check for A/F support
-# has_AutoFocus = False
-
 # Ensure the current working directory is the one containing the script
 # and create a Videos sub-directory, if necessary
 full_path=os.path.realpath(__file__)
@@ -107,7 +104,7 @@ SENSOR_MODE = config.getint('ropey','sensor_mode', fallback = 1)
 # Conservatively 15fps for pre Pi3 models, 25 or 30fps for later models.
 FRAMES_PER_SECOND = config.getint('ropey','frames_per_second', fallback = 20)
 
-# Length of time (seconds) inside circular buffer
+# Length of time (seconds) inside circular ring buffer
 BUFFER_SECONDS = config.getint('ropey','buffer_seconds', fallback =3)
 
 # Number of consecutive frames with motion to trigger recording
@@ -225,7 +222,7 @@ scale = 1
 thickness = 2
 
 # Set Y and u,v colour for a red block REC stamp in streaming frames
-Y,u,v = 130, 130, 230
+Y,u,v = 190, 130, 230
 
 # Set Y for change / trigger level stamp in streaming frames.
 # White stamp so no need for u,v values.
@@ -257,7 +254,7 @@ class StreamingHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_POST(self):
-        global message_1, stop_start, was_button_pressed, motion_button,\
+        global message_1, stop_start, motion_button,\
                trigger_level,reset_trigger, should_delete_files,\
                should_shutdown, should_exit, should_reboot, mjpeg_abort,\
                video_count, set_manual_recording, post_data,\
@@ -307,7 +304,6 @@ class StreamingHandler(BaseHTTPRequestHandler):
 
                     if name == "AwbEnable" and value == True:
                         controls.pop("ColourGains", None)
-
 
             picam2.set_controls(controls)
 
@@ -408,14 +404,14 @@ class StreamingHandler(BaseHTTPRequestHandler):
                 reset_trigger -= 10
             config.set('ropey','trigger_level',str(trigger_level))
 
-        # print("Control button pressed was {}".format(post_data))
+        print("Control button pressed was {}".format(post_data))
         print()
-        was_button_pressed = True
+        
         self._redirect(most_recent_page)
 
 
     def log_message(self, format, *args):
-        return  # This effectively suppresses the log output
+        return  # This re-definition suppresses the log_message output
 
     def _send_response_headers(self, content):
         self.send_response(200)
@@ -803,7 +799,7 @@ def mjpeg_encode():  # Superimpose data on YUV420 frames then encode them as jpe
                 yuv[STREAM_HEIGHT + STREAM_HEIGHT // 4 : STREAM_HEIGHT + STREAM_HEIGHT // 4 + 7, STREAM_WIDTH // 2 - 40 : STREAM_WIDTH // 2] = v
 
             # Convert frame from yuv to jpeg
-            buf = yuv420_jpeg(yuv, STREAM_HEIGHT, STREAM_WIDTH, 60)
+            buf = yuv420_jpeg(yuv, STREAM_HEIGHT, STREAM_WIDTH, 65)
             with mjpeg_condition:
                 mjpeg_frame = buf
                 mjpeg_condition.notify_all()
@@ -821,7 +817,7 @@ def open_files(frame):
     video_file_title = file_title + ".mp4"
 
     # save jpeg of trigger moment
-    snapshot = yuv420_jpeg(current_frame, STREAM_HEIGHT, STREAM_WIDTH, 85)
+    snapshot = yuv420_jpeg(current_frame, STREAM_HEIGHT, STREAM_WIDTH, 90)
     icon = Image.open(BytesIO(snapshot))
     icon.save(file_title + ".jpg")
 
@@ -902,59 +898,55 @@ def get_contour_detections(mask, thresh=20):
 
 
 def motion():
-    global  was_button_pressed, is_recording, total_motion, video_count
+    global  is_recording, total_motion, video_count
+    previous_frame = None
+    motion_frames = 0
+    previous_motion_score = 0
+
     while True:
-        previous_frame = None
-        motion_frames = 0
-        previous_motion_score = 0
+        with cb_condition:
+            cb_condition.wait()
+            current_frame = copy(cb_frame)
+            grey_frame=current_frame[:STREAM_HEIGHT, :]
 
-        # Ignore motion check if button was recently pressed
-        if not was_button_pressed:
+        if previous_frame is not None:
+            total_motion = 0
 
-            while True:
-                with cb_condition:
-                    cb_condition.wait()
-                    current_frame = copy(cb_frame)
-                    grey_frame=current_frame[:STREAM_HEIGHT, :]
+            # Apply motion mask if specified
+            if apply_motion_mask:
+                grey_frame = bitwise_and(grey_frame,mask_array)
 
-                if previous_frame is not None:
-                    total_motion = 0
+            # get image mask for moving pixels
+            mask = get_mask(previous_grey_frame, grey_frame, kernel)
 
-                    # Apply motion mask if specified
-                    if apply_motion_mask:
-                        grey_frame = bitwise_and(grey_frame,mask_array)
+            # get initially proposed detections from contours
+            detections = get_contour_detections(mask, thresh = 20)
 
-                    # get image mask for moving pixels
-                    mask = get_mask(previous_grey_frame, grey_frame, kernel)
+            # if there are any detections use the areas to give 'motion scores'
+            if detections.size > 0:
+                scores = detections[:, -1]
+                total_motion = (scores.sum() + previous_motion_score) // 2
 
-                    # get initially proposed detections from contours
-                    detections = get_contour_detections(mask, thresh = 20)
+            motion_frames = motion_frames + 1 if total_motion > trigger_level else 0
+            
+            if motion_frames >= AFTER_FRAMES or set_manual_recording:
+                if not is_recording:
+                    is_recording = True
+                    start_time = time()
+                    open_files(current_frame)
+                last_motion_time = time()
+            else:
+                # Wait for POST_ROLL + BUFFER_SECONDS seconds after motion stops
+                # Then close the video recording file and check the disk usage
+                if (is_recording and ((time() - last_motion_time) > (BUFFER_SECONDS + POST_ROLL))):
+                    is_recording = False
+                    close_time = time()
+                    close_files(start_time, close_time)
+                    control_storage()
 
-                    # if there are any detections use the areas to give 'motion scores'
-                    if detections.size > 0:
-                        scores = detections[:, -1]
-                        total_motion = (scores.sum() + previous_motion_score) // 2
-
-                    motion_frames = motion_frames + 1 if total_motion > trigger_level else 0
-                    if motion_frames >= AFTER_FRAMES or set_manual_recording:
-                        if not is_recording:
-                            is_recording = True
-                            start_time = time()
-                            open_files(current_frame)
-                        last_motion_time = time()
-                    else:
-                        # Wait for POST_ROLL + BUFFER_SECONDS seconds after motion stops
-                        # Then close the video recording file and check the disk usage
-                        if (is_recording and ((time() - last_motion_time) > (BUFFER_SECONDS + POST_ROLL))):
-                            is_recording = False
-                            close_time = time()
-                            close_files(start_time, close_time)
-                            control_storage()
-
-                previous_frame = current_frame
-                previous_grey_frame = grey_frame
-                previous_motion_score = total_motion
-                was_button_pressed = False
+        previous_frame = current_frame
+        previous_grey_frame = grey_frame
+        previous_motion_score = total_motion
 
 
 def stream():
@@ -1001,7 +993,7 @@ picam2.set_controls(controls)
 # Circular Buffer properties enabled and started
 circ = CircularOutput2(buffer_duration_ms = BUFFER_SECONDS * 1000)
 encoder.output = [circ]
-picam2.start_recording(encoder, circ, quality = Quality.HIGH)
+picam2.start_recording(encoder, circ, quality = Quality.VERY_HIGH)
 
 # Short delay to allow camera auto algorithms to settle
 sleep(1)
