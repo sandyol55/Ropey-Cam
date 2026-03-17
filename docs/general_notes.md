@@ -1,7 +1,7 @@
 ## General notes to help modify the application for specific uses.
 
 ### Compatibility with Raspberry Pi models and cameras.
-With the exception of the original single core CPU boards, i.e.the Raspberry Pi Model A/B and the Pi Zero, all models from Zero 2W through Pi 2 to Pi 5 have sufficient resources to run Ropey-Cam (R-C). Best results at the highest resolutions and framerates will need Pi4 and above.
+With the exception of the original single core CPU boards, i.e.the Raspberry Pi Model A/B and the Pi Zero, (which struggle with framerate), all models from Zero 2W through Pi 2 to Pi 5 have sufficient resources to run Ropey-Cam (R-C). Best results at the highest resolutions and framerates will be achieved with a Pi4 and above. Although users are encouraged to experiment with the settings to optimise for their particular hardware and use-case.
 
 As R-C is based on Picamera2/libcamera it should be compatible with all Raspberry Pi camera modules V1, V2, V3, HQ and GS, any third party versions of these, and any colour camera modules that have supported drivers in the Raspberry Pi kernel eg IMX290 IMX462. 
 
@@ -14,14 +14,19 @@ Full HD 1920x1080 at 30 fps for the recorded video is best with Pi 4 and above, 
  
 In 4:3 (1.333) aspect ratio the max recommended VIDEO WIDTH is 1600 pixels giving a 1600x1200 frame size.
 
+As the size of the streaming video frames also controls the size of the frames which go through the motion detection thread it is best to keep them at smaller sizes to limit the computational load. Again experimentation encouraged. One installation in use by the author records in 1920 pixel wide 20:9 format at 25 fps, with a 1152 wide motion detection / streaming frame size with no problems on a Pi 4. 
 
-## Description of configuration entry inputs
-----
+
+## Description of configuration entry page
  
-![Extract of screenshot showing configuration input section](config_entry_panel.png)
+![Screenshot showing configuration input section](config_entry_panel.png)
 
 ---
-When first run R-C will read in the configuration file ropey.ini and apply the values to the relevant application constants and variables. These values can be updated using the input fields, either with individual entries or in any combination followed by a press of the Submit button. 
+When first run R-C will read in the configuration file 'ropey.ini' and apply stored values to the relevant application constants and variables. These values can be updated using the input fields on this page, either with individual entries or in any combination followed by a press of the 
+> 'Submit to apply changes to internal config file' button. 
+ 
+At this point the in-memory config file has been updated, but the new configuration has not been applied. To apply the configuration changes R-C should be shutdown and restarted, which will force the loading and application of the new configuration.  This can be done with either the EXIT or REBOOT buttons, which have the same effect as those on the 'home' page.
+  
 ### Configuration Fields
 
 #### VIDEO WIDTH
@@ -38,7 +43,7 @@ those shown when queried with  `rpicam-hello --list-cameras`
 
 Typically MODE 0 will give a cropped and binned low resolution mode.
 
-MODE 1 will give:-
+The default MODE 1 will give:-
 
  a full-frame 2x2 binned 16:9 mode on HQ and V3 camera modules 
  
@@ -70,14 +75,38 @@ The default is 80% (0.8) A value closer to 1.0 may be useful with lower capacity
 
 ### Motion Mask
 
-To avoid triggering by the motion of irrelevant background portions of the scene, e.g branches blowing in the wind, a blanking motion mask can be applied or disabled with these boolean Off/On radio buttons. A description of the function of this mask and guidelines on how to generate one are in the [Motion Mask Generation](#generation) section below.
+To avoid triggering by the motion of irrelevant background portions of the scene, e.g branches blowing in the wind, a blanking motion mask can be applied with these boolean Off/On radio buttons. A description of the function of this mask and guidelines on how to generate one are in the [Motion Mask Generation](#generation) section below.
 
 ### Mask_File_Name.pgm  
 Enter the file name of the motion mask to be applied in this field. This should be the full file name with its associated .pgm file type, and it should be stored in the main Ropey-Cam directory. A blank `default_mask.pgm` file is supplied that matches the standard default stream size. If you choose to use a different stream size it is essential to generate a new mask that matches the stream array size.
 
     
 ## Configuration storage
-Configuration changes are stored internally after being submitted or entered, but are not applied 'on-the-fly'. The changes are written to the configuration ropey.ini file on EXIT/SHUTDOWN or REBOOT, and will take effect when the file is read on the next startup.
+It's worth repeating that the configuration changes are stored internally after being submitted or entered, but are not applied 'on-the-fly'. The changes are written to the configuration ropey.ini file on EXIT/SHUTDOWN or REBOOT, and will take effect when the file is read on the next startup.
+
+## Controls Entry Page
+
+![Screenshot showing configuration input section](controls_entry_page.png)
+
+This page allows changes to made to the camera controls, rather than the configuration, and these can be applied 'on-the-fly'. The changes are also stored in the configuration file, to persist and be re-applied on next startup.
+
+See the [Picamera2 Manual](https://pip.raspberrypi.com/documents/RP-008156-DS) for descriptions of the controls, their options and effects.
+
+### The controls can be divided into four sections.
+The first being the straightforward, Brightness, Contrast and Saturation fields which are pre-populated with the current control values.
+
+The second section has the controls influencing the camera's AutoExposure (Ae) Image Processing Algorithm.
+
+The third section has the Auto White Balance  (Awb) controls.  If Awb is disabled then Red and Blue Colour Gains can be manually applied here.
+
+And finally the Auto Focus (Af) group. The Af settings will only apply if the camera module being used supports Af, eg the official RPi V3 IMX708.
+
+If Af is supported, and depending on which AfMode (Manual / Auto / Continuous) is selected, then extra controls will be available in the 'home' page screen to manually control the focus, in steps of 0.5 dioptre, or to trigger an autofocus cycle.
+
+
+
+## Timestamps
+The recorded video files have a date and time stamp embedded in the frame data. The time includes a millisecond record and is useful for checking for dropped frames.  By single-stepping through the recorded files the millisecond counter should advance by ~ 1000 / FRAMES_PER_SECOND each frame. A jump between frames of more than this would indicated dropped frames in the encoded video file.  Playing back the files using mpv media player, rather than the default vlc, can be useful with it's more flexible forward/backward single stepping and easier access to the video properties information.  
 
 <a id="generation"></a>
 ## Motion Mask Generation
@@ -86,7 +115,7 @@ The motion mask is a simple binary black/white .pgm image that, when converted t
 
 There are many ways the masks could be generated but a suggested method is outlined below.
 
-### Use .jpg snapshots as template
+### Use .jpg snapshots as baseline
 
 >Once the Stream size has been set to your chosen size, trigger some motion that will create a .jpg snapshot.
 
@@ -121,12 +150,14 @@ Select the ON Radio Button in the Motion Mask field and Enter the full Mask Name
 
 EXIT or REBOOT and the Mask will be applied on restart.
 
-### To confirm activation
+### To comfirm activation
 A check of the ropey.ini file should confirm the presence of the apply_motion_mask as True and the File Name should be present.
 
 Create some motion in the scene area corresponding to the black area(s) of the mask and check that the motion score in the top left of the streamed image does not respond and no recording is initiated.
 
  
 
-## Timestamps
-The recorded video files have a date and time stamp embedded in the frame data. The time includes a millisecond record and is useful for checking for dropped frames.  By single-stepping through the recorded files the millisecond counter should advance by ~ 1000 / FRAMES_PER_SECOND each frame. A jump between frames of more than this would indicated dropped frames in the encoded video file.  Playing back the files using mpv media player, rather than the default vlc, can be useful with it's more flexible forward/backward single stepping and easier access to the video properties information. 
+
+ 
+
+

@@ -41,10 +41,3 @@ Or, to avoid the console and error messages filling up the nohup output log :-
 `nohup ./Ropey-Cam.py >/dev/null 2>&1`
 
 
-## Resources
-
-A screenshot from a Pi5 browser accessing Ropey-Cam.py running on  Pi3A+,  with two ssh sessions attached, one with htop running and a second running Ropey-Cam, along with a samba share connected  - shows markedly lower memory usage than the 'Desktop' version running on a Pi3B that was shown in the main page.
-
-The latency indicated in the screenshot in this case was ~200ms, while the range seen over a number of captures was typically 130-220ms.
-
-![Lite Installation screenshot from a Pi400](lite_screenshot.png "Screenshot")

@@ -1,10 +1,10 @@
 ![ropey title](./Ropey-Cam.png)
 
-### Ropey-Cam is a Python-based surveillance camera system, designed for Raspberry Pi single-board computers with attached camera modules. The system provides real-time, low-latency, MJPEG video streaming to web browsers, while simultaneously monitoring for motion, and recording high-quality H.264/.mp4 video clips when motion is detected.
+### Ropey-Cam is a self-contained Python-based surveillance / security / wildlife / camera control system, designed for Raspberry Pi single-board computers with attached camera modules. The system provides real-time, low-latency, MJPEG video streaming to web browsers, while simultaneously monitoring for motion, and recording high-quality H.264/.mp4 video clips when motion is detected, while also supporting remote control of the camera from the browser.
 
-As a long term user of the comprehensive [RPi_Cam_Web_Interface](https://github.com/silvanmelchior/RPi_Cam_Web_Interface) with various RPi cameras (V1,V2 and HQ), it was frustrating not being able to use third party cameras e.g IMX462, nor any of the later RPi camera modules with RCWI. Unable to find any suitable  libcamera/Picamera2 based alternatives, and as a learning exercise, work started on this basic -*very basic*- alternative.
+As a long term user of the comprehensive [RPi_Cam_Web_Interface](https://github.com/silvanmelchior/RPi_Cam_Web_Interface) with various RPi cameras (V1,V2 and HQ), it was frustrating not being able to use third party cameras e.g IMX462, nor any of the later RPi camera modules with RCWI. Unable to find any suitable libcamera/Picamera2 based alternatives, and as a learning exercise, work started on this basic -*very basic*- alternative. As a pure Python application it should be relatively easy to access for those keen to modify and extend it for their own use-case. 
 
-For those looking for more comprehensive features, the very fully featured [raspi-cam-srv](https://github.com/signag/raspi-cam-srv) is recommended. 
+For those looking for more comprehensive features, the very fully featured [raspi-cam-srv](https://github.com/signag/raspi-cam-srv) is recommended.  
 
 "Ropey-Cam" reflects its construction methodology: it is assembled from code snippets and examples from the Picamera2 repository, with minimal Python complexity, and uses a multi-threaded architecture to handle concurrent operations. In it's basic form, when installed on a RPi with the standard desktop OS, the only additional dependency is OpenCV.
 
@@ -102,7 +102,7 @@ The button text describes the action that will be taken when the button is press
 
 >All four of the system control buttons change colour to indicate a 'primed' state after the first press. 
 
-See the General Notes linked at the bottom of the page for a description of the configuration input fields below the main control buttons.
+See the General Notes linked at the bottom of the page for a description of the configuration entry pages and camera control pages accessed via the two link blocks below the main control buttons.
 
 
 ### Pre-deployment configuration
@@ -129,18 +129,18 @@ Other recommended steps before deploying are:-
 
 ### Performance
 
-As an example the screenshot below is taken from a Pi5, accessing Ropey-Cam running on a Pi3 Model B V1.2, with both machines connected via Wi-Fi to a home network.
+As an example the screenshot below is taken from a Pi5, accessing Ropey-Cam running on a Pi3A+, with both machines connected via Wi-Fi to a home network.
 
 
 ![Test screenshot](latency_screenshot.png)
 
 In the upper left is an ssh session running htop on the remote Pi3 during an active recording, indicating useful spare CPU and memory capacity.
 
-In the lower left the Thunar file manager is accessing the Videos subdirectory on the remote Pi3 via the network samba share. (Using a separate file manager from the inbuilt pcmanfm allows the thumbnail icon sizes to be increased without affecting the desktop).
+In the lower left the Thunar file manager is accessing the Videos subdirectory on the remote Pi3A+ via the network samba share. (Using a separate file manager from the inbuilt pcmanfm allows the thumbnail icon sizes to be increased without affecting the desktop).
 
 And on the right is the browser, showing an image from the camera while it is being pointed at the browsing computer's screen - with a stopwatch in the foreground.
 
-The difference between the stopwatch time in the foreground, and the background - earlier - image of the stopwatch that has been captured, processed, passed through the network to the browser and displayed, is a measure of the system latency.  The latency of 200ms is in the top end of the range of the values seen in this particular configuration, which were typically in the 150 to 200 ms range. 
+The difference between the stopwatch time in the foreground, and the background - earlier - image of the stopwatch that has been captured, processed, passed through the network and rendered by the browser, is a measure of the system latency.  The latency of 170ms is in the mid end of the range of the values seen in this particular configuration, which were typically in the 150 to 200 ms range. 
 
 ### Acknowledgements 
 
