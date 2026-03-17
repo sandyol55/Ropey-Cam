@@ -58,6 +58,7 @@ reboot_button_colour = PASSIVE
 shutdown_button_colour = PASSIVE
 delete_button_colour = DELETE_PASSIVE
 
+focus_button="" # Pre-define before use
 # Ensure the current working directory is the one containing the script
 # and create a Videos sub-directory, if necessary
 full_path=os.path.realpath(__file__)
@@ -154,6 +155,7 @@ controls['AeEnable'] = ae_enable
 
 exposuretime = config.getint('ropey', 'exposuretime', fallback = 1000)
 analoguegain = config.getfloat('ropey', 'analoguegain', fallback = 1.0)
+
 if not ae_enable:
     controls['ExposureTime'] = exposuretime
     controls['AnalogueGain'] = analoguegain
@@ -192,7 +194,26 @@ if has_autofocus:
     controls['LensPosition'] = lensposition
 
     af_range = config.getint('ropey','afrange' ,fallback = 0)
-    controls['AfRange'] = af_range 
+    controls['AfRange'] = af_range
+
+    # Add configurable extra buttons to home streaming page,
+    # depending on AutoFocus mode. If continuous no buttons are added.
+    if af_mode == 0:
+        focus_button = '''<p> </p>
+                    <form action="/" method="POST">
+                      <input type="submit" name="submit" value="Focus_Near">
+                      <input type="submit" name="submit" value="Focus_Far">
+                    </form>
+                    '''
+    elif af_mode == 1:
+        focus_button = '''<p> </p>
+                    <form action="/" method="POST">
+                      <input type="submit" name="submit" value="Trigger_Auto_Focus_Cycle">
+                    </form>
+                    '''
+    else:
+        focus_button=""
+
 
 # Not currently stored in config file
 INF_TRIGGER_LEVEL = 999999  # Impossibly high to deactiviate detection
@@ -222,7 +243,7 @@ scale = 1
 thickness = 2
 
 # Set Y and u,v colour for a red block REC stamp in streaming frames
-Y,u,v = 190, 130, 230
+Y,u,v = 63, 63, 255
 
 # Set Y for change / trigger level stamp in streaming frames.
 # White stamp so no need for u,v values.
@@ -254,7 +275,7 @@ class StreamingHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_POST(self):
-        global message_1, stop_start, motion_button,\
+        global message_1, stop_start, motion_button,lensposition,focus_button,\
                trigger_level,reset_trigger, should_delete_files,\
                should_shutdown, should_exit, should_reboot, mjpeg_abort,\
                video_count, set_manual_recording, post_data,\
@@ -404,9 +425,27 @@ class StreamingHandler(BaseHTTPRequestHandler):
                 reset_trigger -= 10
             config.set('ropey','trigger_level',str(trigger_level))
 
+        elif post_data == 'Focus_Near': 
+            if lensposition < 15:
+                lensposition = lensposition + 0.5
+                controls['LensPosition'] = lensposition
+                config.set('ropey','lensposition',str(lensposition))
+                message_1 = """Moving lens to focus closer. Approximate dioptre setting = """ + str(lensposition)
+
+        elif post_data == 'Focus_Far':
+            if lensposition > 0:
+                lensposition = lensposition - 0.5
+                controls['LensPosition'] = lensposition
+                config.set('ropey','lensposition',str(lensposition))
+                message_1 = """Moving lens to focus further away. Approximate dioptre setting = """ + str(lensposition)
+
+        elif post_data == 'Trigger_Auto_Focus_Cycle':
+            success = picam2.autofocus_cycle()
+            message_1 = """Auto Focus cycle has been triggered"""
+
         print("Control button pressed was {}".format(post_data))
         print()
-        
+        picam2.set_controls(controls)
         self._redirect(most_recent_page)
 
 
@@ -443,6 +482,8 @@ class StreamingHandler(BaseHTTPRequestHandler):
                       <input type="submit" name="submit" value="{ph5}" style = "{ph7}">
                     </form>
                     <p> </p>
+                      {ph50}
+                    <p> </p>
                     <form action="/" method="POST">
                       <input type="submit" name="submit" value="DELETE_ALL_FILES" style = "{ph11}">
                       <input type="submit" name="submit" value="EXIT" style = "{ph8}">
@@ -466,7 +507,8 @@ class StreamingHandler(BaseHTTPRequestHandler):
                        ph8 = exit_button_colour,
                        ph9 = reboot_button_colour,
                        ph10 = shutdown_button_colour,
-                       ph11 = delete_button_colour)
+                       ph11 = delete_button_colour,
+                       ph50 = focus_button)
 
         CONFPAGE = """\
             <!DOCTYPE html>
@@ -928,7 +970,7 @@ def motion():
                 total_motion = (scores.sum() + previous_motion_score) // 2
 
             motion_frames = motion_frames + 1 if total_motion > trigger_level else 0
-            
+
             if motion_frames >= AFTER_FRAMES or set_manual_recording:
                 if not is_recording:
                     is_recording = True
@@ -987,7 +1029,7 @@ encoder = H264Encoder(repeat = True, iperiod = FRAMES_PER_SECOND)
 # Set the timestamp callback
 picam2.pre_callback = apply_timestamp
 
-# Set the stored set of camera controls
+# Apply the stored set of camera controls
 picam2.set_controls(controls)
 
 # Circular Buffer properties enabled and started
