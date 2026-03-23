@@ -1,11 +1,9 @@
 #!/usr/bin/python3
 
 """
-This script controls a single camera connected to the host Raspberry Pi.
-
-It serves a web page with a set of camera and application control
+This script serves a web page with a set of camera and application control
 buttons, along with an embedded MJPEG live stream from the camera.
-
+It allows control of a single camera connected to the host Raspberry Pi.
 While streaming to the browser, (and also when no browser is connected),
 it is looking for change between consecutive frames in the stream and,
 if sufficent change is detected, will initiate a high-resolution
@@ -18,6 +16,7 @@ snapshot file of the trigger moment.
 To view the web page, point a browser at the Pi's IP address:8000
 
 Or, from a local browser on the Pi, use 127.0.0.1:8000. (Or both.)
+Multiple browsers can view the mjpeg stream and control the camera.
 """
 
 import cv2
@@ -196,9 +195,11 @@ if has_autofocus:
     af_range = config.getint('ropey','afrange' ,fallback = 0)
     controls['AfRange'] = af_range
 
-    # Add configurable extra buttons to home streaming page,
-    # depending on AutoFocus mode. If continuous no buttons are added.
+    # Add definitions of configurable extra buttons to home streaming page,
+    # depending on AutoFocus mode. If AfMode is continuous, no added buttons.
+
     if af_mode == 0:
+        # Manual Mode
         focus_button = '''<p> </p>
                     <form action="/" method="POST">
                       <input type="submit" name="submit" value="Focus_Near">
@@ -206,12 +207,14 @@ if has_autofocus:
                     </form>
                     '''
     elif af_mode == 1:
+        # Triggered Auto Mode
         focus_button = '''<p> </p>
                     <form action="/" method="POST">
                       <input type="submit" name="submit" value="Trigger_Auto_Focus_Cycle">
                     </form>
                     '''
     else:
+        # Assumed Continuous Mode
         focus_button=""
 
 
@@ -265,8 +268,9 @@ class StreamingServer(socketserver.ThreadingMixIn, HTTPServer):
 
 class StreamingHandler(BaseHTTPRequestHandler):
     """
-    Handles the streaming in response to the GET requests from the dynamically configurable page
-    and the actions to take based on the POST requests from the client
+    Handles the streaming of the  dynamically configurable page in response
+    to the GET requests from the client browser(s), and the actions to take
+    based on the POST requests from the browser(s).
     """
     def _redirect(self, path):
         self.send_response(303)
@@ -525,7 +529,7 @@ class StreamingHandler(BaseHTTPRequestHandler):
                       <input type="number" id="VIDEO_WIDTH" name="VIDEO_WIDTH" placeholder = {ph12} min="1024"  max="1920"step="32" style ="margin-right: 12px"  >
 
                       <label for "STREAM_WIDTH">STREAM WIDTH</label>
-                      <input type="number" id="STREAM_WIDTH" name="STREAM_WIDTH" placeholder = {ph13} min="512" max="1280"step="128" style ="margin-right: 12px">
+                      <input type="number" id="STREAM_WIDTH" name="STREAM_WIDTH" placeholder = {ph13} min="384" max="1280"step="128" style ="margin-right: 12px">
 
                       <label for "ASPECT_RATIO">ASPECT RATIO</label>
                       <input type="number" id="ASPECT_RATIO" name="ASPECT_RATIO" placeholder = {ph14} min="1.333" max="2.221"step=".444">
@@ -558,7 +562,7 @@ class StreamingHandler(BaseHTTPRequestHandler):
                       <input type="number" style = "width: 40px" id="BUFFER_SECONDS" name="BUFFER_SECONDS" placeholder ={ph22} min ="1" max="10">
 
                       <label for "POST_ROLL">Post Roll</label>
-                      <input type="number" style = "width: 40px" id="POST_ROLL" name = "POST_ROLL" placeholder = {ph23} min ="0" max="10">
+                      <input type="number" style = "width: 40px" id="POST_ROLL" name = "POST_ROLL" placeholder = {ph23} min ="1" max="10">
 
                       <label for "MAX_DISK_USAGE">Storage Limit</label>
                       <input type="number" style = "width: 50px" id="MAX_DISK_USAGE" name = "MAX_DISK_USAGE" placeholder = {ph24} min ="0.1" max="0.975" step="0.025">
@@ -940,6 +944,21 @@ def get_contour_detections(mask, thresh=20):
 
 
 def motion():
+    """ This thread obtains a lo-res frame from the CaptureBuffer thread, takes a copy
+        and if required applies a motion mask.Then calculates a motion score for the frame
+        relative to the previous frame and if motion is present releases the circular buffer
+        to start saving a video file. Also looks for the end of motion to trigger the closure
+        of the file.
+
+        Inputs:
+            cb_frame - lo-res frame
+            trigger_level - area of changed pixels considered to be motion
+            AFTER_FRAMES - Number of consecutive motion frames to trigger recording
+        Outputs:
+            is_recording - Boolean flag to signal other threads that recording is happening
+            open_files() - called to open video file and to save jpg file of trigger moment
+            close_files() - called to close the video file after motion has ceased
+        """    
     global  is_recording, total_motion, video_count
     previous_frame = None
     motion_frames = 0
@@ -971,7 +990,7 @@ def motion():
 
             motion_frames = motion_frames + 1 if total_motion > trigger_level else 0
 
-            if motion_frames >= AFTER_FRAMES or set_manual_recording:
+            if motion_frames > AFTER_FRAMES or set_manual_recording:
                 if not is_recording:
                     is_recording = True
                     start_time = time()
