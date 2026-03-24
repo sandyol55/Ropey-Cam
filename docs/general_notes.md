@@ -150,7 +150,7 @@ Select the ON Radio Button in the Motion Mask field and Enter the full Mask Name
 
 EXIT or REBOOT and the Mask will be applied on restart.
 
-### To comfirm activation
+### To confirm activation
 A check of the ropey.ini file should confirm the presence of the apply_motion_mask as True and the File Name should be present.
 
 Create some motion in the scene area corresponding to the black area(s) of the mask and check that the motion score in the top left of the streamed image does not respond and no recording is initiated.
