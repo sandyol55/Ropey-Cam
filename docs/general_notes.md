@@ -14,7 +14,7 @@ Full HD 1920x1080 at 30 fps for the recorded video is best with Pi 4 and above, 
  
 In 4:3 (1.333) aspect ratio the max recommended VIDEO WIDTH is 1600 pixels giving a 1600x1200 frame size.
 
-As the size of the streaming video frames also controls the size of the frames which go through the motion detection thread it is best to keep them at smaller sizes to limit the computational load. Again experimentation encouraged. One installation in use by the author records in 1920 pixel wide 20:9 format at 25 fps, with a 1152 wide motion detection / streaming frame size with no problems on a Pi 4. 
+As the size of the streaming video frames also controls the size of the frames which go through the motion detection thread it is best to keep them at the minimum useful size, to limit the computational load. Again experimentation encouraged. One installation in use by the author records in 1920 pixel wide 20:9 format at 25 fps, with a 1152 wide motion detection / streaming frame size with no problems on a Pi 4. 
 
 
 ## Description of configuration entry page
@@ -32,7 +32,7 @@ At this point the in-memory config file has been updated, but the new configurat
 #### VIDEO WIDTH
 The VIDEO WIDTH field will accept values from 1024 to 1920 in steps of 32 pixels, to match the optimal alignments supported by the hardware, and controls the pixel width of the recorded .mp4 video files.
 #### STREAM WIDTH 
-The STREAM WIDTH will accept values from 512 to 1280 in steps of 128 pixels to match all Pi model hardware alignments. (Earlier models supported steps of 64 pixels, but 128 is required for Pi 5).
+The STREAM WIDTH will accept values from 384 to 1280 in steps of 128 pixels to match all Pi model hardware alignments. (Earlier models supported steps of 64 pixels, but 128 is required for Pi 5).
 #### ASPECT RATIO
 The ASPECT RATIO can be either 1.333 , 1.777 or 2.221  (4:3 , 16:9  or 20:9), and is used to calculate the relevant HEIGHT for each stream.  (No sensor modes support native 20:9 but the system will readily crop a 16:9 mode and give a wide format 20:9 video recording and output stream).  
 #### FPS
@@ -61,15 +61,15 @@ After testing the application in the intended environment and finding the optimu
 To help ensure the triggering is caused by 'true motion' the current default setting of AFTER # FRAMES is to wait for 5 consecutive frames with a 'Frame Difference' above the trigger_level, before activating recording.
  
 
-### Buffer 
+### Buffer (Pre-Roll)
 The current default of buffer_seconds is set to 3 seconds, and controls the length of the circular buffer that is capturing frames from before the trigger moment. Longer values are possible, but will increase the memory requirements.
 
 ### Post Roll
-The post-roll is also set to a default 3 seconds and can be altered to capture more or less video following the cessation of motion.
+The post-roll is also set to a default 3 seconds and can be altered to capture more or less video following the cessation of motion. Unlike the Pre-Roll this does not affect memory requirements.  
 
 ### Storage Limit
 
-To help avoid the disk/card running out of storage space the disk_usage is checked after each video file is stored and if the ratio of used/total space exceeds this limit the oldest files will be deleted.
+To help avoid the disk/card running out of storage space the disk_usage is checked after each video file is stored, and if the ratio of used/total space exceeds this limit the oldest files will be deleted.
 
 The default is 80% (0.8) A value closer to 1.0 may be useful with lower capacity storage cards. Lower values may be appropriate for large capacity cards. 
 
@@ -101,7 +101,7 @@ The third section has the Auto White Balance  (Awb) controls.  If Awb is disable
 
 And finally the Auto Focus (Af) group. The Af settings will only apply if the camera module being used supports Af, eg the official RPi V3 IMX708.
 
-If Af is supported, and depending on which AfMode (Manual / Auto / Continuous) is selected, then extra controls will be available in the 'home' page screen to manually control the focus, in steps of 0.5 dioptre, or to trigger an autofocus cycle.
+If Af is supported, - and depending on which AfMode (Manual / Auto / Continuous) is selected - then extra buttons will be available in the 'home' page screen to manually control the focus, in steps of 0.5 dioptre, or to trigger an autofocus cycle.
 
 
 
@@ -111,7 +111,7 @@ The recorded video files have a date and time stamp embedded in the frame data. 
 <a id="generation"></a>
 ## Motion Mask Generation
 
-The motion mask is a simple binary black/white .pgm image that, when converted to a numpy array, will be bitwise 'anded' with the frames used in the motion detection thread. The black (0) areas of the mask will effectively blank the equivalent areas of the motion detection frames, while the white (255) areas will leave the equivalent areas unmodified. The mask must match the width and height of the stream / motion detection frames.
+The motion mask is a simple binary black/white .pgm image that, when converted to a numpy array, will be bitwise 'anded' with the frames used in the motion detection thread. The black (0) areas of the mask will effectively blank the equivalent areas of the motion detection frames, while the white (255) areas will leave the equivalent areas unmodified. The mask dimensions must exactly match the width and height of the stream / motion detection frames.
 
 There are many ways the masks could be generated but a suggested method is outlined below.
 
@@ -119,7 +119,7 @@ There are many ways the masks could be generated but a suggested method is outli
 
 >Once the Stream size has been set to your chosen size, trigger some motion that will create a .jpg snapshot.
 
->Load a representative .jpg snapshot from the Videos directory into a paint package that supports .pgm files. GIMP is a good choice and will be the basis of the following description.
+>Load the representative .jpg snapshot from the Videos directory into a paint package that supports .pgm files. GIMP is a good choice and will be the basis of the following description.
 
 >From the Layer Menu 'Create a New Layer'.
 
@@ -133,7 +133,7 @@ There are many ways the masks could be generated but a suggested method is outli
 
 >Brush over the area where the unwanted motion appears, and it should become fully visible through the black areas of the layer.
 
-> If you have made the black area too big, try reducing the brush size and switching the foreground colour to white and fill back in toward the unwanted area. Leave a small border around the unwanted zone to allow for the motion. 
+> If you have made the black area too big, try reducing the brush size and switching the foreground colour to white and fill back in toward the unwanted area. Leave a small black border around the unwanted zone to allow for the motion. 
 
 >Highlight the original jpg layer in the layers toolbox, then right click and Delete Layer.
 

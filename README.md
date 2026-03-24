@@ -60,7 +60,7 @@ This recording is happening in the background while the live stream continues un
 ### Control buttons
 Brief description of the effect of the control buttons, some of which may be familiar to Rpi_Cam_Web_Interface users ;-)
 
-The button text describes the action that will be taken when the button is pressed, while the colour indicates the current state of that control active/inactive.
+The button text describes the action that will be taken when the button is pressed, while the colour indicates the current state of that control i.e. active/inactive.
 
 **Motion_Detect_Off**
 >  will disable the active motion detection, but retain the live stream.
@@ -102,7 +102,7 @@ The button text describes the action that will be taken when the button is press
 
 >All four of the system control buttons change colour to indicate a 'primed' state after the first press. 
 
-See the General Notes linked at the bottom of the page for a description of the configuration entry pages and camera control pages accessed via the two link blocks below the main control buttons.
+See the General Notes linked at the bottom of the page for a description of the configuration entry pages and camera control pages which are accessed via the two link blocks below the main control buttons.
 
 
 ### Pre-deployment configuration
@@ -129,18 +129,18 @@ Other recommended steps before deploying are:-
 
 ### Performance
 
-As an example the screenshot below is taken from a Pi5, accessing Ropey-Cam running on a Pi3A+, with both machines connected via Wi-Fi to a home network.
+As an example the screenshot below is taken from a Pi5, accessing Ropey-Cam running on a Pi3A+ under the Lite version of RPiOS, with both machines connected via Wi-Fi to a home network.
 
 
 ![Test screenshot](latency_screenshot.png)
 
-In the upper left is an ssh session running htop on the remote Pi3 during an active recording, indicating useful spare CPU and memory capacity.
+In the upper left is an ssh session running htop on the remote Pi3+ during an active recording, indicating useful spare CPU and memory capacity.
 
 In the lower left the Thunar file manager is accessing the Videos subdirectory on the remote Pi3A+ via the network samba share. (Using a separate file manager from the inbuilt pcmanfm allows the thumbnail icon sizes to be increased without affecting the desktop).
 
 And on the right is the browser, showing an image from the camera while it is being pointed at the browsing computer's screen - with a stopwatch in the foreground.
 
-The difference between the stopwatch time in the foreground, and the background - earlier - image of the stopwatch that has been captured, processed, passed through the network and rendered by the browser, is a measure of the system latency.  The latency of 170ms is in the mid end of the range of the values seen in this particular configuration, which were typically in the 150 to 200 ms range. 
+The difference between the stopwatch time in the foreground, and the background - earlier - image of the stopwatch that has been captured, processed, passed through the network and rendered by the browser, is a measure of the system latency.  The latency of 170ms is in the middle of the values seen in this particular configuration, which were typically in the 150 to 200 ms range. 
 
 ### Acknowledgements 
 
