@@ -58,6 +58,7 @@ shutdown_button_colour = PASSIVE
 delete_button_colour = DELETE_PASSIVE
 
 focus_button="" # Pre-define before use
+
 # Ensure the current working directory is the one containing the script
 # and create a Videos sub-directory, if necessary
 full_path=os.path.realpath(__file__)
@@ -83,10 +84,21 @@ else:
         print(f"Error reading configuration file: {e}")
 
 # Set up the configuration variables/CONSTANTS from the stored data
+
 # Recording (hi-res) and streaming (lo-res) video resolutions
 VIDEO_WIDTH = config.getint('ropey','video_width', fallback =1280)
 STREAM_WIDTH = config.getint('ropey','stream_width', fallback = 640)
 ASPECT_RATIO = config.getfloat('ropey', 'aspect_ratio', fallback = 1.777)
+
+# Catch and correct any width errors that have been created in the .ini file
+# Corrected values will be used now, and will persist following next restart
+if STREAM_WIDTH > VIDEO_WIDTH:
+    STREAM_WIDTH = 128 * (VIDEO_WIDTH // 128)
+    config.set('ropey','stream_width', str(STREAM_WIDTH))
+
+if ASPECT_RATIO == 1.333 and VIDEO_WIDTH > 1600:
+    VIDEO_WIDTH = 1600
+    config.set('ropey', 'video_width', str(1600))
 
 # Calculate heights from width and aspect ratio. HEIGHTs are made even.
 VIDEO_HEIGHT = int(2* ((VIDEO_WIDTH/ASPECT_RATIO) // 2))
@@ -384,7 +396,7 @@ class StreamingHandler(BaseHTTPRequestHandler):
             reboot_button_colour = ACTIVE
 
         elif post_data == 'SHUTDOWN':
-            message_1 = """Press SHUTDOWN again if you're sure - or 
+            message_1 = """Press SHUTDOWN again if you're sure - or
             RESET to cancel. (Short delay while files are saved)."""
             if should_shutdown:
                 cleanup()
@@ -429,7 +441,7 @@ class StreamingHandler(BaseHTTPRequestHandler):
                 reset_trigger -= 10
             config.set('ropey','trigger_level',str(trigger_level))
 
-        elif post_data == 'Focus_Near': 
+        elif post_data == 'Focus_Near':
             if lensposition < 15:
                 lensposition = lensposition + 0.5
                 controls['LensPosition'] = lensposition
@@ -706,7 +718,7 @@ class StreamingHandler(BaseHTTPRequestHandler):
                                     <option value = 1> Auto </option>
                                     <option value = 2> Continuous </option>
                                   </select>
-                              <p></p>    
+                              <p></p>
                                 <label for "LensPosition"> LensPosition (0.0 through (1.0)  to   15.0)  </label>
                                 <input type = "number" id = "LensPosition" name = "LensPosition" placeholder = "1.0"  >
                               <p></p>
@@ -717,8 +729,8 @@ class StreamingHandler(BaseHTTPRequestHandler):
                                     <option value = 1> Macro </option>
                                     <option value = 2> Full </option>
                                   </select>
-                              <p></p> 
-                                <input type = "submit" value = "Submit to apply control changes to internal config file and immediately to camera">  
+                              <p></p>
+                                <input type = "submit" value = "Submit to apply control changes to internal config file and immediately to camera">
                             </form>
                           </center>
                          </body>
@@ -777,10 +789,6 @@ class StreamingHandler(BaseHTTPRequestHandler):
 
 
 def update_ini_file():
-    global VIDEO_WIDTH
-    # Sanity check for oversize 4:3 video frame
-    if VIDEO_WIDTH > 1600 and ASPECT_RATIO == 1.333:
-        VIDEO_WIDTH = 1600
     with open('ropey.ini', 'w') as configfile:
         config.write(configfile)
 
@@ -958,7 +966,7 @@ def motion():
             is_recording - Boolean flag to signal other threads that recording is happening
             open_files() - called to open video file and to save jpg file of trigger moment
             close_files() - called to close the video file after motion has ceased
-        """    
+        """
     global  is_recording, total_motion, video_count
     previous_frame = None
     motion_frames = 0
