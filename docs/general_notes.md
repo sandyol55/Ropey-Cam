@@ -8,9 +8,9 @@ As R-C is based on Picamera2/libcamera it should be compatible with all Raspberr
 
 
 #### Video Resolutions and FrameRates
-The default configuration is 1280x720 @ 20fps for the recorded video, and 640x360 (at the same framerate) for the stream to the browser. Both are conservative and 'should just work' on any supported combination of Pi + Camera module.
+The default configuration is 1280x720 @ 20fps for the recorded video, and 512x288 (at the same framerate) for the stream to the browser. Both are conservative and 'should just work' on any supported combination of Pi + Camera module.
 
-Full HD 1920x1080 at 30 fps for the recorded video is best with Pi 4 and above, although Full HD @ 20fps has been tested successfully on a Pi3A+.
+Full HD 1920x1080 at 30 fps for the recorded video is best with Pi 4 and above, although Full HD @ 20fps has been tested successfully on a Pi3A+ and Zero2W.
  
 In 4:3 (1.333) aspect ratio the max recommended VIDEO WIDTH is 1600 pixels giving a 1600x1200 frame size.
 

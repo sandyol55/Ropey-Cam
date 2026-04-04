@@ -87,7 +87,7 @@ else:
 
 # Recording (hi-res) and streaming (lo-res) video resolutions
 VIDEO_WIDTH = config.getint('ropey','video_width', fallback =1280)
-STREAM_WIDTH = config.getint('ropey','stream_width', fallback = 640)
+STREAM_WIDTH = config.getint('ropey','stream_width', fallback = 512)
 ASPECT_RATIO = config.getfloat('ropey', 'aspect_ratio', fallback = 1.777)
 
 # Catch and correct any width errors that have been created in the .ini file
@@ -164,7 +164,7 @@ controls['AeConstraintMode'] = ae_constraint_mode
 ae_enable = config.getboolean('ropey','aeenable', fallback = True)
 controls['AeEnable'] = ae_enable
 
-exposuretime = config.getint('ropey', 'exposuretime', fallback = 1000)
+exposuretime = config.getint('ropey', 'exposuretime', fallback = 10000)
 analoguegain = config.getfloat('ropey', 'analoguegain', fallback = 1.0)
 
 if not ae_enable:
