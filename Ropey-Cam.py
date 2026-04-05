@@ -4,6 +4,7 @@
 This script serves a web page with a set of camera and application control
 buttons, along with an embedded MJPEG live stream from the camera.
 It allows control of a single camera connected to the host Raspberry Pi.
+
 While streaming to the browser, (and also when no browser is connected),
 it is looking for change between consecutive frames in the stream and,
 if sufficent change is detected, will initiate a high-resolution
@@ -91,7 +92,7 @@ STREAM_WIDTH = config.getint('ropey','stream_width', fallback = 512)
 ASPECT_RATIO = config.getfloat('ropey', 'aspect_ratio', fallback = 1.777)
 
 # Catch and correct any width errors that have been created in the .ini file
-# Corrected values will be used now, and will persist following next restart
+# Corrected values will be used, and will persist following the next restart
 if STREAM_WIDTH > VIDEO_WIDTH:
     STREAM_WIDTH = 128 * (VIDEO_WIDTH // 128)
     config.set('ropey','stream_width', str(STREAM_WIDTH))
@@ -199,7 +200,7 @@ if has_autofocus:
     controls['AfMetering'] = af_metering
 
     af_mode = config.getint('ropey','afmode' ,fallback = 0)
-    controls['AfMode'] = af_mode 
+    controls['AfMode'] = af_mode
 
     lensposition = config.getfloat('ropey', 'lensposition' ,fallback = 1.0)
     controls['LensPosition'] = lensposition
@@ -207,7 +208,7 @@ if has_autofocus:
     af_range = config.getint('ropey','afrange' ,fallback = 0)
     controls['AfRange'] = af_range
 
-    # Add definitions of configurable extra buttons to home streaming page,
+    # Add definitions of extra buttons for use in the  'home' streaming page,
     # depending on AutoFocus mode. If AfMode is continuous, no added buttons.
 
     if af_mode == 0:
@@ -248,21 +249,30 @@ kernel = array((9,9), dtype=uint8)  # Used in detection function
 mask_name='' # Predefine for use later
 most_recent_page ='/index.html' # Prepare for guided page redirects
 
+# Set position and sizes of YU420 background REC colour box in stream
+VERT_OFFSET = 26
+BOX_WIDTH = 32
+BOX_HEIGHT = 8
 
-# Set text colour, position and size for timestamp in recorded files.
+# Set text colour, position , font and size for timestamp in recorded files.
 # Yellow text, near top left of screen, in a small font
+BLACK = (0, 0, 0)
 colour = (240, 240, 50)
-origin = (8, 24)
+origin_offset = (4, VERT_OFFSET)
 font = cv2.FONT_HERSHEY_SIMPLEX
 scale = 1
 thickness = 2
 
 # Set Y and u,v colour for a red block REC stamp in streaming frames
-Y,u,v = 63, 63, 255
+Y,u,v = 192, 63, 255
 
-# Set Y for change / trigger level stamp in streaming frames.
-# White stamp so no need for u,v values.
-Y_STREAM_STAMP = 255
+# Set colour for change / trigger level stamp in streaming frames.
+# White stamp in YUV420 frame so u,v values unimportant.
+STREAM_STAMP = (255, 0, 0)
+
+# Set Quality for jpeg conversions, high for snapshot, low for streaming
+HIGH_Q = 90
+LOW_Q = 65
 
 
 class StreamingServer(socketserver.ThreadingMixIn, HTTPServer):
@@ -798,7 +808,8 @@ def apply_timestamp(request):
     milliseconds = clock_time.microsecond // 1000
     timestamp = f"""Ropey-Cam     {clock_time:%d/%m/%Y      %H:%M:%S}.{milliseconds:03d}     {total_motion:06d}"""
     with MappedArray(request, "main") as m:
-        cv2.putText(m.array, timestamp, origin, font, scale, colour, thickness)
+        cv2.putText(m.array, timestamp, origin_offset, font, scale, BLACK, thickness + 4)
+        cv2.putText(m.array, timestamp, origin_offset, font, scale, colour, thickness)
 
 
 def capturebuffer():
@@ -839,21 +850,26 @@ def mjpeg_encode():  # Superimpose data on YUV420 frames then encode them as jpe
 
             # embed result of frame to frame difference calculation,
             #  versus current trigger level, in top left of frame.
+            # With black background for improved contrast 
             motion_stamp = f"{total_motion:06d}/{trigger_level:06d}"
 
-            cv2.putText(yuv, motion_stamp, (12, 22), font, scale ,
-                        (Y_STREAM_STAMP, 0, 0), thickness)
+            cv2.putText(yuv, motion_stamp, origin_offset, font, scale ,
+                        BLACK, thickness + 4)
+
+            cv2.putText(yuv, motion_stamp, origin_offset, font, scale ,
+                        STREAM_STAMP , thickness)
 
             if is_recording:
                 # put a red REC stamp in top right of frame
-                cv2.putText(yuv,"REC",(STREAM_WIDTH - 72, 22), font, 1, (Y, 0, 0), 2)
-                yuv[STREAM_HEIGHT : STREAM_HEIGHT + 7, STREAM_WIDTH - 40:] = u
-                yuv[STREAM_HEIGHT + STREAM_HEIGHT // 4 : STREAM_HEIGHT + STREAM_HEIGHT // 4 + 7, STREAM_WIDTH - 40 :] = v
-                yuv[STREAM_HEIGHT : STREAM_HEIGHT + 7, STREAM_WIDTH // 2 - 40 : STREAM_WIDTH // 2] = u
-                yuv[STREAM_HEIGHT + STREAM_HEIGHT // 4 : STREAM_HEIGHT + STREAM_HEIGHT // 4 + 7, STREAM_WIDTH // 2 - 40 : STREAM_WIDTH // 2] = v
+                cv2.putText(yuv,"REC",(STREAM_WIDTH - 62, VERT_OFFSET), font, scale, BLACK, thickness + 4)
+                cv2.putText(yuv,"REC",(STREAM_WIDTH - 62, VERT_OFFSET), font, scale, Y, thickness)
+                yuv[STREAM_HEIGHT : STREAM_HEIGHT + BOX_HEIGHT, STREAM_WIDTH - BOX_WIDTH:] = u
+                yuv[STREAM_HEIGHT + STREAM_HEIGHT // 4 : STREAM_HEIGHT + STREAM_HEIGHT // 4 + BOX_HEIGHT, STREAM_WIDTH - BOX_WIDTH :] = v
+                yuv[STREAM_HEIGHT : STREAM_HEIGHT + BOX_HEIGHT, STREAM_WIDTH // 2 - BOX_WIDTH : STREAM_WIDTH // 2] = u
+                yuv[STREAM_HEIGHT + STREAM_HEIGHT // 4 : STREAM_HEIGHT + STREAM_HEIGHT // 4 + BOX_HEIGHT, STREAM_WIDTH // 2 - BOX_WIDTH : STREAM_WIDTH // 2] = v
 
             # Convert frame from yuv to jpeg
-            buf = yuv420_jpeg(yuv, STREAM_HEIGHT, STREAM_WIDTH, 65)
+            buf = yuv420_jpeg(yuv, STREAM_HEIGHT, STREAM_WIDTH,LOW_Q)
             with mjpeg_condition:
                 mjpeg_frame = buf
                 mjpeg_condition.notify_all()
@@ -871,7 +887,7 @@ def open_files(frame):
     video_file_title = file_title + ".mp4"
 
     # save jpeg of trigger moment
-    snapshot = yuv420_jpeg(current_frame, STREAM_HEIGHT, STREAM_WIDTH, 90)
+    snapshot = yuv420_jpeg(current_frame, STREAM_HEIGHT, STREAM_WIDTH, HIGH_Q)
     icon = Image.open(BytesIO(snapshot))
     icon.save(file_title + ".jpg")
 
