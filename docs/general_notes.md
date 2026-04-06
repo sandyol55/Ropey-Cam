@@ -19,7 +19,7 @@ As the size of the streaming video frames also controls the size of the frames w
 
 ## Description of configuration entry page
  
-![Screenshot showing configuration input section](config_entry_panel.png)
+![Screenshot showing configuration input section](config_entry_page.png)
 
 ---
 When first run R-C will read in the configuration file 'ropey.ini' and apply stored values to the relevant application constants and variables. These values can be updated using the input fields on this page, either with individual entries or in any combination followed by a press of the 
@@ -53,7 +53,7 @@ Mode 2 will give a full-frame 2x2 binned 4:3 mode on an HQ module.
 
 Other higher modes may be useful in limited circumstances.
 #### Hflip Vflip
-The Hflip and Vflip switches can be used to vertically or horizontally mirror the video frame or invert it if used together. These apply to both recorded and streaming frames. 
+The Sensor Hflip and Vflip radio buttons can be used to mirror the video frame either horizontally or vertically, or invert it  if both are set together. These transformations apply to both the  recorded and streaming frames. 
 ### Trigger @
 After testing the application in the intended environment and finding the optimum trigger_level with the Inc/Dec controls it may be convenient to input the trigger-level for motion detection value directly, particularly if large changes are needed.
 
@@ -75,10 +75,14 @@ The default is 80% (0.8) A value closer to 1.0 may be useful with lower capacity
 
 ### Motion Mask
 
-To avoid triggering by the motion of irrelevant background portions of the scene, e.g branches blowing in the wind, a blanking motion mask can be applied with these boolean Off/On radio buttons. A description of the function of this mask and guidelines on how to generate one are in the [Motion Mask Generation](#generation) section below.
+To avoid triggering by the motion of irrelevant background portions of the scene, e.g branches blowing in the wind, a blanking motion mask can be applied with these Off / On radio buttons. A description of the function of this mask and guidelines on how to generate one are in the [Motion Mask Generation](#generation) section below.
 
 ### Mask_File_Name.pgm  
 Enter the file name of the motion mask to be applied in this field. This should be the full file name with its associated .pgm file type, and it should be stored in the main Ropey-Cam directory. A blank `default_mask.pgm` file is supplied that matches the standard default stream size. If you choose to use a different stream size it is essential to generate a new mask that matches the stream array size.
+
+### NOIR Camera Module
+If the camera module being used is a noir version, then setting this radio button to Yes should trigger the system to load the appropriate camera_noir.json tuning file at the next restart.
+This *should* work for all official Rapberry Pi camera modules, but hasn't been tested on any third party versions yet. This should give reasonable daylight colour rendering from the NOIR module instead of the highly discoloured images that occur if an NOIR module is used with the standard camera tuning file. 
 
     
 ## Configuration storage

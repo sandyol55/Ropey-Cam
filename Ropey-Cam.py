@@ -129,6 +129,20 @@ POST_ROLL = config.getint('ropey','post_roll', fallback = 3)
 # Transform controls
 HFLIP = config.getboolean('ropey','hflip', fallback = False)
 VFLIP = config.getboolean('ropey','vflip', fallback = False)
+# Set up checked string variables for use in HTML CONFPAGE radio buttons
+if HFLIP:
+    yes_checked_hflip = "checked"
+    no_checked_hflip = ""
+elif not HFLIP:
+    yes_checked_hflip = ""
+    no_checked_hflip = "checked"
+
+if VFLIP:
+    yes_checked_vflip = "checked"
+    no_checked_vflip = ""
+elif not VFLIP:
+    yes_checked_vflip = ""
+    no_checked_vflip = "checked"
 
 # Video file counter, to retain consecutive file numbering after restarts
 video_count = config.getint('ropey','video_count', fallback = 0)
@@ -146,6 +160,26 @@ if apply_motion_mask:
 
     # Convert the pgm image to a Numpy array
     mask_array = array(mask_image)
+
+    # More !! string variables for HTML radio checked buttons
+    yes_checked_mask = "checked"
+    no_checked_mask = ""
+elif not apply_motion_mask:
+    yes_checked_mask = ""
+    no_checked_mask = "checked"
+
+# Check for camera module being a 'No IR Filter 'noir' version
+is_noir = config.getboolean('ropey', 'is_noir', fallback = False)
+config.set('ropey', 'is_noir',str(is_noir))
+
+# Even more !! string variables for HTML radio checked buttons
+# Look for a better way to do this!!
+if is_noir :
+    yes_checked_noir = "checked"
+    no_checked_noir = ""
+elif not is_noir:
+    yes_checked_noir = ""
+    no_checked_noir = "checked"
 
 # Now a camera controls section. Get the values and populate controls {}
 controls={}
@@ -200,7 +234,7 @@ if has_autofocus:
     controls['AfMetering'] = af_metering
 
     af_mode = config.getint('ropey','afmode' ,fallback = 0)
-    controls['AfMode'] = af_mode
+    controls['AfMode'] = af_mode 
 
     lensposition = config.getfloat('ropey', 'lensposition' ,fallback = 1.0)
     controls['LensPosition'] = lensposition
@@ -249,7 +283,7 @@ kernel = array((9,9), dtype=uint8)  # Used in detection function
 mask_name='' # Predefine for use later
 most_recent_page ='/index.html' # Prepare for guided page redirects
 
-# Set position and sizes of YU420 background REC colour box in stream
+# Set position and sizes of YU420 background colour box in stream
 VERT_OFFSET = 26
 BOX_WIDTH = 32
 BOX_HEIGHT = 8
@@ -308,7 +342,10 @@ class StreamingHandler(BaseHTTPRequestHandler):
                motion_button_colour, record_button_colour,\
                exit_button_colour, reboot_button_colour,\
                shutdown_button_colour, delete_button_colour,\
-               VIDEO_WIDTH,STREAM_WIDTH,FRAMES_PER_SECOND, most_recent_page
+               VIDEO_WIDTH,STREAM_WIDTH,FRAMES_PER_SECOND, most_recent_page,\
+               no_checked_noir, yes_checked_noir, no_checked_hflip,\
+               yes_checked_hflip, no_checked_vflip, yes_checked_vflip,\
+               no_checked_mask, yes_checked_mask
 
         content_length = int(self.headers['Content-Length'])  # Get data length
         post_data = self.rfile.read(content_length).decode("utf-8")  # Get the data
@@ -322,6 +359,40 @@ class StreamingHandler(BaseHTTPRequestHandler):
                 # And populate config for later saving to ini file
                 if value != '':
                     config.set('ropey',name,value)
+
+                    # Testing and setting the 'checked' status of th  4 sets of radio buttons
+                    # to ensure they reflect the current status before returning to the page
+                    if name == "is_noir" :
+                        if value == "True":
+                            yes_checked_noir = "checked"
+                            no_checked_noir = ""
+                        elif value == "False":
+                            yes_checked_noir = ""
+                            no_checked_noir = "checked"
+
+                    if name == "HFLIP" :
+                        if value == "True":
+                            yes_checked_hflip = "checked"
+                            no_checked_hflip = ""
+                        elif value == "False":
+                            yes_checked_hflip = ""
+                            no_checked_hflip = "checked"
+
+                    if name == "VFLIP" :
+                        if value == "True":
+                            yes_checked_vflip = "checked"
+                            no_checked_vflip = ""
+                        elif value == "False":
+                            yes_checked_vflip = ""
+                            no_checked_vflip = "checked"
+
+                    if name == "apply_motion_mask" :
+                        if value == "True":
+                            yes_checked_mask = "checked"
+                            no_checked_mask = ""
+                        elif value == "False":
+                            yes_checked_mask = ""
+                            no_checked_mask = "checked"
 
         elif most_recent_page =="/controls.html":
             conf_items = post_data.split("&")
@@ -562,49 +633,55 @@ class StreamingHandler(BaseHTTPRequestHandler):
                       <label for "SENSOR_MODE">MODE</label>
                       <input type="number" id="SENSOR_MODE" name="SENSOR_MODE" placeholder = {ph16} min="0" max={ph17} style="margin-right: 20px">
 
-                      <label for "HFLIP Off"> Hflip .({ph18}).Off </label>
-                      <input type="radio" name="HFLIP" value = False >
+                      <label for "HFLIP"> Sensor Hflip -> Off </label>
+                      <input type="radio" name="HFLIP" value = False {ph18} >
 
-                      <label for "HFLIP On">On</label>
-                      <input type="radio" name="HFLIP" value = True style="margin-right: 30px">
+                      <label for "HFLIP">On</label>
+                      <input type="radio" name="HFLIP" value = True {ph19} style="margin-right: 30px">
 
-                      <label for "VFLIP Off"> Vflip .({ph19}).Off </label>
-                      <input type="radio" name="VFLIP" value = False ">
+                      <label for "VFLIP"> Sensor Vflip -> Off </label>
+                      <input type="radio" name="VFLIP" value = False {ph20} >
 
-                      <label for "VFLIP On">On</label>
-                      <input type="radio" name="VFLIP" value = True>
+                      <label for "VFLIP">On</label>
+                      <input type="radio" name="VFLIP" value = True {ph21} >
                       <p></p>
                       <label for "trigger_level">Trigger @</label>
-                      <input type="text" size = 4 id="trigger_level" name="trigger_level" placeholder = {ph20}>
+                      <input type="text" size = 4 id="trigger_level" name="trigger_level" placeholder = {ph22}>
 
                       <label for "AFTER_FRAMES"># Frames</label>
-                      <input type="number" style = "width: 40px" id="AFTER_FRAMES" name="AFTER_FRAMES" placeholder = {ph21} min="0" max="50">
+                      <input type="number" style = "width: 40px" id="AFTER_FRAMES" name="AFTER_FRAMES" placeholder = {ph23} min="0" max="50">
 
                       <label for "BUFFER_SECONDS"> Buffer</label>
-                      <input type="number" style = "width: 40px" id="BUFFER_SECONDS" name="BUFFER_SECONDS" placeholder ={ph22} min ="1" max="10">
+                      <input type="number" style = "width: 40px" id="BUFFER_SECONDS" name="BUFFER_SECONDS" placeholder ={ph24} min ="1" max="10">
 
                       <label for "POST_ROLL">Post Roll</label>
-                      <input type="number" style = "width: 40px" id="POST_ROLL" name = "POST_ROLL" placeholder = {ph23} min ="1" max="10">
+                      <input type="number" style = "width: 40px" id="POST_ROLL" name = "POST_ROLL" placeholder = {ph25} min ="1" max="10">
 
                       <label for "MAX_DISK_USAGE">Storage Limit</label>
-                      <input type="number" style = "width: 50px" id="MAX_DISK_USAGE" name = "MAX_DISK_USAGE" placeholder = {ph24} min ="0.1" max="0.975" step="0.025">
+                      <input type="number" style = "width: 50px" id="MAX_DISK_USAGE" name = "MAX_DISK_USAGE" placeholder = {ph26} min ="0.1" max="0.975" step="0.025">
                       <p></p>
-                      <label for "Motion Mask Off"> Motion Mask .({ph25}). Off</label>
-                      <input type="radio" name="apply_motion_mask" value = False>
+                      <label for "apply_motion_mask"> Motion Mask Off</label>
+                      <input type="radio" name="apply_motion_mask" value = False {ph27}>
 
-                      <label for "Motion Mask On"> On</label>
-                      <input type="radio" name="apply_motion_mask" value = True style = "margin-right: 50px">
+                      <label for "apply_motion_mask"> On</label>
+                      <input type="radio" name="apply_motion_mask" value = True {ph28} style = "margin-right: 50px">
 
                       <label for "mask_name">Mask File Name.pgm</label>
-                      <input type="text" id="mask_name" name="mask_name" placeholder = {ph26}>
+                      <input type="text" id="mask_name" name="mask_name" placeholder = {ph29}>
+                      <p></p>
+                      <label for "is_noir"> Is the camera module a No IR filter ('noir') version ? No</label>
+                      <input type="radio" name="is_noir" value = False {ph30} >
+
+                      <label for "is_noir"> Yes</label>
+                      <input type="radio" name="is_noir" value = True {ph31} style = "margin-right: 50px">
                       <p></p>
                       <input type="submit" value="Submit to apply changes to internal config file">
                     </form>
                     <p></p>
                     <h3>The submitted configuration change takes effect on restart/reboot</h3>
                     <form action="/" method="POST">
-                      <input type="submit" name="submit" value="EXIT" style ="{ph27}">
-                      <input type="submit" name="submit" value="REBOOT" style ="{ph28}">
+                      <input type="submit" name="submit" value="EXIT" style ="{ph32}">
+                      <input type="submit" name="submit" value="REBOOT" style ="{ph33}">
                     </form>
                   </center>
                 </body>
@@ -615,17 +692,22 @@ class StreamingHandler(BaseHTTPRequestHandler):
                            ph15 = FRAMES_PER_SECOND,
                            ph16 = SENSOR_MODE,
                            ph17 = str(max_mode),
-                           ph18 = str(HFLIP),
-                           ph19 = str(VFLIP),
-                           ph20 = trigger_level,
-                           ph21 = AFTER_FRAMES,
-                           ph22 = BUFFER_SECONDS,
-                           ph23 = POST_ROLL,
-                           ph24 = MAX_DISK_USAGE,
-                           ph25 = str(apply_motion_mask),
-                           ph26 = mask_name,
-                           ph27 = exit_button_colour,
-                           ph28 = reboot_button_colour
+                           ph18 = no_checked_hflip,
+                           ph19 = yes_checked_hflip,
+                           ph20 = no_checked_vflip,
+                           ph21 = yes_checked_vflip,
+                           ph22 = trigger_level,
+                           ph23 = AFTER_FRAMES,
+                           ph24 = BUFFER_SECONDS,
+                           ph25 = POST_ROLL,
+                           ph26 = MAX_DISK_USAGE,
+                           ph27 = no_checked_mask,
+                           ph28 = yes_checked_mask,
+                           ph29 = mask_name,
+                           ph30 = no_checked_noir,
+                           ph31 = yes_checked_noir,
+                           ph32 = exit_button_colour,
+                           ph33 = reboot_button_colour
                            )
         CONTROLPAGE = """\
             <!DOCTYPE html>
@@ -640,13 +722,13 @@ class StreamingHandler(BaseHTTPRequestHandler):
                             <p> </p>
                             <form action="/" method = "POST">
                                 <label for "Brightness"> Brightness (-1.0 through (0.0)  to   +1.0)  </label>
-                                <input type = "number" id = "Brightness" name = "Brightness"  min ="-1.0" max="1.0" step="0.025" value ={ph30} >
+                                <input type = "number" id = "Brightness" name = "Brightness"  min ="-1.0" max="1.0" step="0.025" value ={ph40} >
                               <p></p> 
                                 <label for "Contrast"> Contrast (0.0 through (1.0)  to  32.0)</label>
-                                <input type = "number" id = "Contrast" name = "Contrast" min ="0.0" max="32.0" step="0.025" value ={ph31} >
+                                <input type = "number" id = "Contrast" name = "Contrast" min ="0.0" max="32.0" step="0.025" value ={ph41} >
                               <p></p>
                                 <label for "Saturation"> Saturation (0.0 through (1.0)  to  32.0)</label>
-                                <input type = "number" id = "Saturation" name = "Saturation" min ="0.0" max="32.0" step="0.025" value ={ph32} >
+                                <input type = "number" id = "Saturation" name = "Saturation" min ="0.0" max="32.0" step="0.025" value ={ph42} >
                                 <p></p>
                               <p></p>
                                 <label for = "AeConstraintMode"> AeConstraintMode :</label>
@@ -666,10 +748,10 @@ class StreamingHandler(BaseHTTPRequestHandler):
                                   </select>
                               <p></p>
                                 <label for ="ExposureTime"> ExposureTime (microseconds)</label>
-                                <input type = "number" id = "ExposureTime" name = "ExposureTime" placeholder = {ph34}>
+                                <input type = "number" id = "ExposureTime" name = "ExposureTime" placeholder = {ph43}>
                               <p></p>
                                 <label for = "AnalogueGain">AnalogueGain</label>
-                                <input type = "number" id = "AnalogueGain" name = "AnalogueGain" placeholder = {ph35}> 
+                                <input type = "number" id = "AnalogueGain" name = "AnalogueGain" placeholder = {ph44}> 
                               <p></p>
                                 <label for = "AeExposureMode"> AeExposureMode :</label>
                                   <select id = "AeExposureMode" name="AeExposureMode">
@@ -681,7 +763,7 @@ class StreamingHandler(BaseHTTPRequestHandler):
                                   </select>
                               <p></p>
                                 <label for = "ExposureValue"> ExposureValue (-8.0 through (0.0)  to  8.0 ) </label>
-                                <input type = "number" id = "ExposureValue" name = "ExposureValue" min ="-8.0" max="8.0" step="0.05" value ={ph36} >
+                                <input type = "number" id = "ExposureValue" name = "ExposureValue" min ="-8.0" max="8.0" step="0.05" value ={ph45} >
                               <p></p>
                                 <label for = "AeMeteringMode"> AeMeteringMode :</label>
                                   <select id = "AeMeteringMode" name = "AeMeteringMode">
@@ -745,12 +827,12 @@ class StreamingHandler(BaseHTTPRequestHandler):
                           </center>
                          </body>
                         </html>
-                        """.format(ph30 = controls["Brightness"],
-                                   ph31 = controls["Contrast"],
-                                   ph32 = controls["Saturation"],
-                                   ph34 = exposuretime,
-                                   ph35 = analoguegain,
-                                   ph36 = controls["ExposureValue"])
+                        """.format(ph40 = controls["Brightness"],
+                                   ph41 = controls["Contrast"],
+                                   ph42 = controls["Saturation"],
+                                   ph43 = exposuretime,
+                                   ph44 = analoguegain,
+                                   ph45 = controls["ExposureValue"])
 
         if self.path == '/':
             self.send_response(301)
@@ -1049,9 +1131,20 @@ def stream():
 
 os.environ["LIBCAMERA_LOG_LEVELS"] = "4"  # reduce libcamera messsages
 
-# Configure Camera and start it running
-# Instantiate camera
+
+# Instantiate camera and find sensor_model for use in selecting tuning file
 picam2 = Picamera2()
+properties = picam2.camera_properties
+sensor_model = properties['Model']
+picam2.close()
+
+# Define tuning file name based on model and on boolean state of is_noir
+noir = "_noir" if is_noir else ""
+tuning_file_name  = sensor_model + noir + ".json"
+
+# Instantiate camera with appropriate tuning file 
+tuning = Picamera2.load_tuning_file(tuning_file_name)
+picam2 = Picamera2(tuning = tuning)
 
 # Interrogate the sensor to find the supported modes
 modes = picam2.sensor_modes
