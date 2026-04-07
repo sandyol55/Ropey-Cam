@@ -130,19 +130,11 @@ POST_ROLL = config.getint('ropey','post_roll', fallback = 3)
 HFLIP = config.getboolean('ropey','hflip', fallback = False)
 VFLIP = config.getboolean('ropey','vflip', fallback = False)
 # Set up checked string variables for use in HTML CONFPAGE radio buttons
-if HFLIP:
-    yes_checked_hflip = "checked"
-    no_checked_hflip = ""
-elif not HFLIP:
-    yes_checked_hflip = ""
-    no_checked_hflip = "checked"
+yes_checked_hflip = "checked" if HFLIP else ""
+no_checked_hflip = "" if HFLIP else "checked"
 
-if VFLIP:
-    yes_checked_vflip = "checked"
-    no_checked_vflip = ""
-elif not VFLIP:
-    yes_checked_vflip = ""
-    no_checked_vflip = "checked"
+yes_checked_vflip = "checked" if VFLIP else ""
+no_checked_vflip = "" if VFLIP else "checked"
 
 # Video file counter, to retain consecutive file numbering after restarts
 video_count = config.getint('ropey','video_count', fallback = 0)
@@ -172,14 +164,9 @@ elif not apply_motion_mask:
 is_noir = config.getboolean('ropey', 'is_noir', fallback = False)
 config.set('ropey', 'is_noir',str(is_noir))
 
-# Even more !! string variables for HTML radio checked buttons
-# Look for a better way to do this!!
-if is_noir :
-    yes_checked_noir = "checked"
-    no_checked_noir = ""
-elif not is_noir:
-    yes_checked_noir = ""
-    no_checked_noir = "checked"
+# More string variables for HTML radio checked buttons
+yes_checked_noir = "checked" if is_noir else ""
+no_checked_noir = "" if is_noir else "checked"
 
 # Now a camera controls section. Get the values and populate controls {}
 controls={}
@@ -363,36 +350,21 @@ class StreamingHandler(BaseHTTPRequestHandler):
                     # Testing and setting the 'checked' status of th  4 sets of radio buttons
                     # to ensure they reflect the current status before returning to the page
                     if name == "is_noir" :
-                        if value == "True":
-                            yes_checked_noir = "checked"
-                            no_checked_noir = ""
-                        elif value == "False":
-                            yes_checked_noir = ""
-                            no_checked_noir = "checked"
+                        yes_checked_noir = "checked" if value == "True" else ""
+                        no_checked_noir = "" if value == "True" else "checked"
 
                     if name == "HFLIP" :
-                        if value == "True":
-                            yes_checked_hflip = "checked"
-                            no_checked_hflip = ""
-                        elif value == "False":
-                            yes_checked_hflip = ""
-                            no_checked_hflip = "checked"
+                        yes_checked_hflip = "checked" if value == "True" else ""
+                        no_checked_hflip = "" if value == "True" else "checked"
 
                     if name == "VFLIP" :
-                        if value == "True":
-                            yes_checked_vflip = "checked"
-                            no_checked_vflip = ""
-                        elif value == "False":
-                            yes_checked_vflip = ""
-                            no_checked_vflip = "checked"
+                        yes_checked_vflip = "checked" if value == "True" else ""
+                        no_checked_vflip = "" if value == "True" else "checked"
 
                     if name == "apply_motion_mask" :
-                        if value == "True":
-                            yes_checked_mask = "checked"
-                            no_checked_mask = ""
-                        elif value == "False":
-                            yes_checked_mask = ""
-                            no_checked_mask = "checked"
+
+                        yes_checked_mask = "checked" if value == "True" else ""
+                        no_checked_mask = "" if value == "true" else "checked"
 
         elif most_recent_page =="/controls.html":
             conf_items = post_data.split("&")
