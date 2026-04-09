@@ -1,8 +1,10 @@
 ## General notes to help modify the application for specific uses.
 
 ### Compatibility with Raspberry Pi models and cameras.
-With the exception of the original single core CPU boards, i.e.the Raspberry Pi Model A/B and the Pi Zero, (which struggle with framerate), all models from Zero 2W through Pi 2 to Pi 5 have sufficient resources to run Ropey-Cam (R-C). Best results at the highest resolutions and framerates will be achieved with a Pi4 and above. Although users are encouraged to experiment with the settings to optimise for their particular hardware and use-case.
-
+With the exception of the original single core CPU boards, i.e.the Raspberry Pi Model A/B and the Pi Zero, (which struggle with framerate), all models from ~~Zero 2W~~* through Pi 2 to Pi 5 have sufficient resources to run Ropey-Cam (R-C). Best results at the highest resolutions and framerates will be achieved with a Pi4 and above. Although users are encouraged to experiment with the settings to optimise for their particular hardware and use-case.
+ *  A long term test of Zero2W resulted in extremely laggy slow responses and associated reduced CPU load - under investigation!
+ *  
+ 
 As R-C is based on Picamera2/libcamera it should be compatible with all Raspberry Pi camera modules V1, V2, V3, HQ and GS, any third party versions of these, and any colour camera modules that have supported drivers in the Raspberry Pi kernel eg IMX290 IMX462. 
 
 
