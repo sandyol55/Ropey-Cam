@@ -168,6 +168,10 @@ config.set('ropey', 'is_noir',str(is_noir))
 yes_checked_noir = "checked" if is_noir else ""
 no_checked_noir = "" if is_noir else "checked"
 
+# A camera title to be used in timestamps and streaming header
+camera_title = config.get ('ropey', 'camera_title', fallback = 'Ropey-Cam')
+
+
 # Now a camera controls section. Get the values and populate controls {}
 controls={}
 
@@ -537,11 +541,11 @@ class StreamingHandler(BaseHTTPRequestHandler):
                 <head>
                   <meta charset="UTF-8">
                   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                  <title>Ropey-Cam</title>
+                  <title>{ph0}</title>
                 </head>
                 <body>
                   <center>
-                    <h2>Ropey-Cam  Live Streaming with motion-triggered Recording</h2>
+                    <h2>{ph0} Live Streaming with motion-triggered Recording</h2>
                     <img src="stream.mjpg" width="{ph1}" height="{ph2}" />
                     <p> {ph3}  </p>
                     <form action="/" method="POST">
@@ -566,7 +570,8 @@ class StreamingHandler(BaseHTTPRequestHandler):
                   </center>
                 </body>
               </html>
-            """.format(ph1 = STREAM_WIDTH,
+            """.format(ph0 = camera_title,
+                       ph1 = STREAM_WIDTH,
                        ph2 = STREAM_HEIGHT,
                        ph3 = message_1,
                        ph4 = motion_button,
@@ -647,6 +652,9 @@ class StreamingHandler(BaseHTTPRequestHandler):
                       <label for "is_noir"> Yes</label>
                       <input type="radio" name="is_noir" value = True {ph31} style = "margin-right: 50px">
                       <p></p>
+                      <label for "camera_title">Custom camera title (Alphanumerics and hyphens or underscores only, no spaces or special characters).</label>
+                      <input type="text" id="camera_title" name="camera_title" placeholder = {ph34}>
+                      <p></p>
                       <input type="submit" value="Submit to apply changes to internal config file">
                     </form>
                     <p></p>
@@ -679,7 +687,8 @@ class StreamingHandler(BaseHTTPRequestHandler):
                            ph30 = no_checked_noir,
                            ph31 = yes_checked_noir,
                            ph32 = exit_button_colour,
-                           ph33 = reboot_button_colour
+                           ph33 = reboot_button_colour,
+                           ph34 = camera_title
                            )
         CONTROLPAGE = """\
             <!DOCTYPE html>
@@ -860,7 +869,7 @@ def update_ini_file():
 def apply_timestamp(request):
     clock_time = datetime.now()
     milliseconds = clock_time.microsecond // 1000
-    timestamp = f"""Ropey-Cam     {clock_time:%d/%m/%Y      %H:%M:%S}.{milliseconds:03d}     {total_motion:06d}"""
+    timestamp = f"""{camera_title}   {clock_time:%d/%m/%Y      %H:%M:%S}.{milliseconds:03d}     {total_motion:06d}"""
     with MappedArray(request, "main") as m:
         cv2.putText(m.array, timestamp, origin_offset, font, scale, BLACK, thickness + 4)
         cv2.putText(m.array, timestamp, origin_offset, font, scale, colour, thickness)
