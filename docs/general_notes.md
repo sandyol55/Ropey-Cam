@@ -84,6 +84,8 @@ Enter the file name of the motion mask to be applied in this field. This should 
 If the camera module being used is a noir version, then setting this radio button to Yes should trigger the system to load the appropriate camera_noir.json tuning file at the next restart.
 This *should* work for all official Rapberry Pi camera modules, but hasn't been tested on any third party versions yet. This should give reasonable daylight colour rendering from the NOIR module instead of the highly discoloured images that occur if an NOIR module is used with the standard camera tuning file. 
 
+### Custom Camera Title
+Here you can add a brief description of the camera in use, which will appear in the streaming home page title and will be embedded in the recorded video file timestamp.
     
 ## Configuration storage
 It's worth repeating that the configuration changes are stored internally after being submitted or entered, but are not applied 'on-the-fly'. The changes are written to the configuration ropey.ini file on EXIT/SHUTDOWN or REBOOT, and will take effect when the file is read on the next startup.
