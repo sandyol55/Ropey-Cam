@@ -27,7 +27,9 @@ Then :-
 #### Alternatively
 *There are only two files required to use Ropey-Cam, the python script Ropey-Cam.py, and its configuration file ropey.ini. So instead of cloning the whole repository, simply open the files, then copy or download them to a Ropey-Cam directory within the /home/users directory on the target local machine. Then proceed to run the file as above. If necessary make file executable with*
 
-` chmod +x Ropey-Cam.py` 
+` chmod +x Ropey-Cam.py`
+
+*It is even possible to download only Ropey-Cam.py, as a ropey.ini file with default values will be built after first run.* 
 
 Then to access the camera stream and controls :-
 
@@ -134,7 +136,7 @@ As an example the screenshot below is taken from a Pi5, accessing Ropey-Cam runn
 
 ![Test screenshot](latency_screenshot.png)
 
-In the upper left is an ssh session running htop on the remote Pi3+ during an active recording, indicating useful spare CPU and memory capacity.
+In the upper left is an ssh session running htop on the remote Pi3A+ during an active recording, indicating useful spare CPU and memory capacity.
 
 In the lower left the Thunar file manager is accessing the Videos subdirectory on the remote Pi3A+ via the network samba share. (Using a separate file manager from the inbuilt pcmanfm allows the thumbnail icon sizes to be increased without affecting the desktop).
 
