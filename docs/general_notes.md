@@ -10,7 +10,7 @@ As R-C is based on Picamera2/libcamera it should be compatible with all Raspberr
 #### Video Resolutions and FrameRates
 The default configuration is 1280x720 @ 20fps for the recorded video, and 512x288 (at the same framerate) for the stream to the browser. Both are conservative and 'should just work' on any supported combination of Pi + Camera module.
 
-Full HD 1920x1080 at 30 fps for the recorded video is best with Pi 4 and above, although Full HD @ 20fps has been tested successfully on a Pi3A+ and Zero2W.
+Full HD 1920x1080 at 30 fps for the recorded video is best with Pi 4 and above, although Full HD @ 20fps has been tested successfully on a Pi3A+.
  
 In 4:3 (1.333) aspect ratio the max recommended VIDEO WIDTH is 1600 pixels giving a 1600x1200 frame size.
 
@@ -22,17 +22,17 @@ As the size of the streaming video frames also controls the size of the frames w
 ![Screenshot showing configuration input section](config_entry_page.png)
 
 ---
-When first run R-C will read in the configuration file 'ropey.ini' and apply stored values to the relevant application constants and variables. These values can be updated using the input fields on this page, either with individual entries or in any combination followed by a press of the 
+When first run R-C will read in the configuration file 'ropey.ini', (if present), and apply stored values to the relevant application constants and variables. These values can be updated using the input fields on this page, either with individual entries or in any combination followed by a press of the 
 > 'Submit to apply changes to internal config file' button. 
  
-At this point the in-memory config file has been updated, but the new configuration has not been applied. To apply the configuration changes R-C should be shutdown and restarted, which will force the loading and application of the new configuration.  This can be done with either the EXIT or REBOOT buttons, which have the same effect as those on the 'home' page.
+At this point the in-memory config object has been updated, but the new configuration has not been applied. To apply the configuration changes R-C should be shutdown and restarted, which will force the loading and application of the new configuration.  This can be done with either the EXIT or REBOOT buttons, which have the same effect as those on the 'home' page.
   
 ### Configuration Fields
 
 #### VIDEO WIDTH
 The VIDEO WIDTH field will accept values from 1024 to 1920 in steps of 32 pixels, to match the optimal alignments supported by the hardware, and controls the pixel width of the recorded .mp4 video files.
 #### STREAM WIDTH 
-The STREAM WIDTH will accept values from 384 to 1280 in steps of 128 pixels to match all Pi model hardware alignments. (Earlier models supported steps of 64 pixels, but 128 is required for Pi 5).
+The STREAM WIDTH will accept values from 384 to 1280 in steps of 128 pixels to match all Pi model hardware alignments. (Earlier models supported steps of 64 pixels, but 128 is required for Pi 5). The motion thread uses a copy of the same frames that are streamed to the browser.
 #### ASPECT RATIO
 The ASPECT RATIO can be either 1.333 , 1.777 or 2.221  (4:3 , 16:9  or 20:9), and is used to calculate the relevant HEIGHT for each stream.  (No sensor modes support native 20:9 but the system will readily crop a 16:9 mode and give a wide format 20:9 video recording and output stream).  
 #### FPS
@@ -58,7 +58,7 @@ The Sensor Hflip and Vflip radio buttons can be used to mirror the video frame e
 After testing the application in the intended environment and finding the optimum trigger_level with the Inc/Dec controls it may be convenient to input the trigger-level for motion detection value directly, particularly if large changes are needed.
 
 ### # Frames
-To help ensure the triggering is caused by 'true motion' the current default setting of AFTER # FRAMES is to wait for 5 consecutive frames with a 'Frame Difference' above the trigger_level, before activating recording.
+To help ensure the triggering is caused by 'true motion' the current default setting of AFTER # FRAMES is to wait for 5 consecutive frames with a 'Frame Difference' above the trigger_level, before activating recording. Higher values make the system more immune to noise but 'eat into' the Pre-Roll buffer length.
  
 
 ### Buffer (Pre-Roll)
@@ -78,7 +78,7 @@ The default is 80% (0.8) A value closer to 1.0 may be useful with lower capacity
 To avoid triggering by the motion of irrelevant background portions of the scene, e.g branches blowing in the wind, a blanking motion mask can be applied with these Off / On radio buttons. A description of the function of this mask and guidelines on how to generate one are in the [Motion Mask Generation](#generation) section below.
 
 ### Mask_File_Name.pgm  
-Enter the file name of the motion mask to be applied in this field. This should be the full file name with its associated .pgm file type, and it should be stored in the main Ropey-Cam directory. A blank `default_mask.pgm` file is supplied that matches the standard default stream size. If you choose to use a different stream size it is essential to generate a new mask that matches the stream array size.
+Enter the file name of the motion mask to be applied in this field. This should be the full file name with its associated .pgm file type, and it should be stored in the main Ropey-Cam directory. A blank `default_mask.pgm` file is supplied that matches the standard default stream size. If you choose to use a different stream size, and want to use motion masking, it is essential to generate a new mask that matches the new stream array size.
 
 ### NOIR Camera Module
 If the camera module being used is a noir version, then setting this radio button to Yes should trigger the system to load the appropriate camera_noir.json tuning file at the next restart.
@@ -112,7 +112,7 @@ If Af is supported, - and depending on which AfMode (Manual / Auto / Continuous)
 
 
 ## Timestamps
-The recorded video files have a date and time stamp embedded in the frame data. The time includes a millisecond record and is useful for checking for dropped frames.  By single-stepping through the recorded files the millisecond counter should advance by ~ 1000 / FRAMES_PER_SECOND each frame. A jump between frames of more than this would indicated dropped frames in the encoded video file.  Playing back the files using mpv media player, rather than the default vlc, can be useful with it's more flexible forward/backward single stepping and easier access to the video properties information.  
+The recorded video files have a date and time stamp embedded in the frame data. The time includes a millisecond record and is useful for checking for dropped frames.  By single-stepping through the recorded files the millisecond counter should advance by ~ 1000 / FRAMES_PER_SECOND each frame e.g 050 for 20fps. A jump between frames of significantly more than this would indicate dropped frames in the encoded video file.  Playing back the files using mpv media player, rather than the default vlc, can be useful with it's more flexible forward/backward single stepping and easy access to the video properties information.  
 
 <a id="generation"></a>
 ## Motion Mask Generation
@@ -138,8 +138,6 @@ There are many ways the masks could be generated but a suggested method is outli
 >Ensure the foreground colour is set to Black and the Background to White.
 
 >Brush over the area where the unwanted motion appears, and it should become fully visible through the black areas of the layer.
-
-> If you have made the black area too big, try reducing the brush size and switching the foreground colour to white and fill back in toward the unwanted area. Leave a small black border around the unwanted zone to allow for the motion. 
 
 >Highlight the original jpg layer in the layers toolbox, then right click and Delete Layer.
 
