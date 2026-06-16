@@ -7,6 +7,10 @@ As a long term user of the comprehensive [RPi_Cam_Web_Interface](https://github.
 For those looking for more comprehensive features, the very fully featured [raspi-cam-srv](https://github.com/signag/raspi-cam-srv) is recommended.  
 
 "Ropey-Cam" reflects its construction methodology: it is assembled from code snippets and examples from the Picamera2 repository, with minimal Python complexity, and uses a multi-threaded architecture to handle concurrent operations. In it's basic form, when installed on a RPi with the standard desktop OS, the only additional dependency is OpenCV.
+### Password required for sudo access
+In the latest update the default use of sudo without a pasword has changed, and a password is now required.
+As Ropey-Cam makes some sudo level OS system calls thw default should be changed back to the former setting in
+either raspi-config or the control centre system options.
 
 ### Quick Start Example
  
